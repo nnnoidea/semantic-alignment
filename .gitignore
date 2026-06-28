@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+.semantic-alignment/
+tmp-*/
+.DS_Store
+Thumbs.db

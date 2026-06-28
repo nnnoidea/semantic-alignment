@@ -1,0 +1,4 @@
+interface:
+  display_name: "Semantic Alignment"
+  short_description: "Audit intent, realization, and artifact alignment."
+  default_prompt: "Use $semantic-alignment to track user intent, realization semantics, semantic drift, and artifact alignment for this project."
