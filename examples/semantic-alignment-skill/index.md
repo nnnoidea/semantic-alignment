@@ -42,6 +42,5 @@ Create an agent skill/package that records and audits semantic alignment across 
 
 ### Known Unknowns
 
-- The final GitHub repository layout is not yet chosen: standalone `semantic-alignment` repository or multi-skill repository.
-- GitHub upload is pending.
+- No current project-level unknown blocks the published skill package.
 - The current Codex shell process has not refreshed PATH after installation; use full tool paths in this session.

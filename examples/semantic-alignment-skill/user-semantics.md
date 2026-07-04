@@ -102,13 +102,11 @@ The English and Chinese README files should express the same core semantics: ope
 - `realization-semantics.md` and `audits.md` should remain current working records; older non-current realization rows and older resolved/accepted/superseded audit events should be archived when they make routine reads noisy.
 - Reference-file splitting should happen only when the resulting files have distinct loading moments; do not split files that agents would still routinely load together.
 - Fresh-agent reminder testing showed direct semantic conflict handling is adequate, while stale-route handling needed a stronger user-visible reminder rule.
-- GitHub publishing is still open: decide whether the repository should contain only this skill or be part of a multi-skill repository.
-- The current GitHub packaging direction is a single-skill repository with `examples/semantic-alignment-skill/` as documentation material.
+- GitHub publishing is complete: the current package is published as the single-skill repository `nnnoidea/semantic-alignment`, with `examples/semantic-alignment-skill/` as documentation material.
 
 ## User Review Focus
 
 - Is this current baseline an accurate expression of your intent?
 - Is the boundary right: scripts enforce structure, the agent judges semantics, and the user reviews the current baseline?
 - Should JSONL mirrors remain generated secondary views, or should selected records later promote structured data to the source of truth?
-- Should any selected semantic records be committed to GitHub, or should they remain local/private process metadata?
-- Before publishing, verify that example records contain no private or sensitive material.
+- For future releases, verify that example records contain no private or sensitive material before publishing.

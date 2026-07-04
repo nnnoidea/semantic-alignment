@@ -2,12 +2,12 @@
 
 ## Current Audit Summary
 
-- Overall status: potential-drift.
-- Open drift: GitHub publishing remains part of the original project goal but is not yet completed.
+- Overall status: aligned.
+- Open drift: none observed; GitHub publishing completed after the release gate audit.
 - Open contradictions: none observed.
 - Reopen triggers: use generated `recheck-triggers.md` for routine trigger monitoring; if the projection becomes stale, run `scripts/sync_triggers.py`; if agents miss rules because references are not loaded, strengthen the reference-loading map; if trigger rows again contain open tasks/recommendations/actions, recheck U30; if JSONL mirrors diverge from Markdown records, recheck U35.
 - Current recommendations:
-  - Publish the repository to `nnnoidea/semantic-alignment` after the release audit passes.
+  - For future releases, run a release-gate audit before publishing and keep example records free of private material.
   - Run `scripts/check_audit_coverage.py` before reporting any future full audit as complete.
   - Keep reference files unsplit unless a split creates distinct loading moments for real agent actions.
 
