@@ -110,7 +110,7 @@ No audit events recorded yet.
 
 def main():
     parser = argparse.ArgumentParser(description="Create semantic-alignment record files with fixed headers.")
-    parser.add_argument("record_dir", help="Path to .semantic-alignment/<task-slug>/ or another writable record directory")
+    parser.add_argument("record_dir", help="Path to .semantic-alignment/<project-slug>/ or another writable record directory")
     parser.add_argument("--title", default="Semantic Alignment Records", help="Title for index.md")
     parser.add_argument("--force", action="store_true", help="Overwrite existing files")
     args = parser.parse_args()

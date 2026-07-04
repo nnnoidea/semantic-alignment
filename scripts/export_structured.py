@@ -71,7 +71,7 @@ def export(record_dir):
 
 def main():
     parser = argparse.ArgumentParser(description="Export selected semantic-alignment records to structured JSONL mirrors.")
-    parser.add_argument("record_dir", help="Path to .semantic-alignment/<task-slug>/ or another record directory")
+    parser.add_argument("record_dir", help="Path to .semantic-alignment/<project-slug>/ or another record directory")
     args = parser.parse_args()
 
     try:

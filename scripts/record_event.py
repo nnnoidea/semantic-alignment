@@ -221,7 +221,7 @@ def add_check_parser(subparsers):
 
 def main():
     parser = argparse.ArgumentParser(description="Append fixed-format semantic-alignment record rows.")
-    parser.add_argument("record_dir", help="Path to .semantic-alignment/<task-slug>/ or another record directory")
+    parser.add_argument("record_dir", help="Path to .semantic-alignment/<project-slug>/ or another record directory")
     subparsers = parser.add_subparsers(dest="kind", required=True)
     add_ledger_parser(subparsers)
     add_realization_parser(subparsers)

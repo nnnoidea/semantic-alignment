@@ -2,44 +2,47 @@
 
 [中文说明](README.zh-CN.md)
 
-## What Problem Does It Solve?
+AI agents usually do not fail by refusing to work. They fail by quietly turning the work into something else.
 
-Most projects are not completed exactly as they were first imagined.
+Users describe goals. Agents fill gaps, work around constraints, add details, and choose routes. At first, each choice may look reasonable. Over time, the project can drift: no one remembers what the user actually asked for, which parts were agent assumptions, and which decisions were only temporary compromises.
 
-During design, implementation, or writing, the idea changes. Sometimes that happens because a better approach is found. Other times, it happens because reality gets in the way: a tool is missing, time is limited, an asset is unavailable, permissions are not ready, or the requirement is still unclear.
+`semantic-alignment` keeps that drift visible.
 
-The second kind of change is the dangerous one. A temporary compromise can quietly become the default route. When the original constraint is gone, the project may keep following the compromised path simply because no one remembers why the detour was taken.
+It asks the agent to remember what the user really wants, record what it adds or changes during implementation, and audit the result item by item. Users should also initiate audits at key checkpoints to keep the project meaning from quietly drifting.
 
-AI agents add another layer of risk. They naturally fill in missing details. Some of those additions are reasonable; others may change the product meaning, interaction direction, architecture, or acceptance criteria. Without a record, it becomes hard to tell which parts came from the user, which parts were inferred by the agent, and whether the final result still fits the original goal.
-
-`semantic-alignment` is built to address this problem.
+In short: this skill helps agents keep proving that the thing they built is still the thing the user wanted.
 
 ## How Does It Solve It?
 
-This skill asks the agent to maintain a set of semantic records for the project.
+The skill separates project meaning into a few durable records:
 
-It focuses on recording:
+- `user-semantics.md`: what the user currently wants
+- `user-semantic-ledger.md`: what changed, from what to what, and why
+- `recheck-triggers.md`: observable conditions that mean an old decision may need review
+- `realization-semantics.md`: what the agent intends to realize after interpreting the user
+- `artifact-checks.md`: whether the real code, design, or document matches that intent
+- `audits.md`: the alignment judgment across those layers
 
-- what the user currently wants
-- which important parts of that intent have changed, and why
-- which routes were accepted only because of temporary constraints
-- what conditions should trigger a review of an old compromise
-- what the agent added that the user did not explicitly state
-- whether the final code, design, or document still matches those meanings
+The important split is this: user meaning, agent-added realization meaning, and the real artifact are not treated as the same thing.
 
-The main file for the user is `user-semantics.md`. It keeps the current state readable and avoids mixing in the full history. Detailed changes and audit material live in separate files.
+## What Does It Audit?
 
-## What Can It Remind You About?
+At review time, the skill pushes the agent to answer concrete questions instead of writing a vague summary:
 
-For example:
+- Which user semantics are satisfied, partial, unmet, unknown, or in conflict?
+- Which implementation details were directly requested by the user?
+- Which details were added by the agent but still serve the user's semantics?
+- Which added details are risky or conflict with the user's semantics?
+- Does the real artifact match what the agent believed it implemented?
+- Did an old constraint disappear, making a previous compromise worth reopening?
 
-- File export was unavailable, so the project used copy-to-clipboard; now file export is available, so the old route may be worth reopening.
-- The user wanted a quiet, practical tool, but the new request is pushing the design toward a high-pressure marketing page.
-- The agent added autosave, shortcuts, or navigation, even though the user did not explicitly ask for them.
-- A local implementation looks reasonable, but it no longer serves the global goal.
-- The actual code or design does not match what the agent believed it had implemented.
+For example, if export was unavailable and the project used copy-to-clipboard, a trigger can remind the agent to revisit that route once export becomes available. If an agent adds autosave, shortcuts, navigation, or public copy that the user never requested, the audit should classify whether those additions are aligned details or semantic drift.
 
-The skill does not record every chat message. It records meanings that affect the project or design direction.
+## How Triggers Work
+
+A recheck trigger is not a task and not a recommendation. It is an observable condition that means: "read the linked ledger entry again and decide whether this old semantic decision still holds."
+
+The agent reads the compact trigger projection when it loads the semantic frame, before meaningful planning or delivery, when the user mentions a changed constraint, when the artifact exposes new evidence, and during audits. If a trigger appears true, the agent must read the linked ledger entry, state the old route and the now-true condition, and make the reminder visible before continuing or changing the baseline.
 
 ## How It Works
 
@@ -51,9 +54,9 @@ The skill separates alignment into three layers:
 2. **Realization semantics**: what the agent intends to realize in the artifact after interpreting the user.
 3. **Artifact checks**: whether the actual code, design, document, or output matches those realization semantics.
 
-When an important semantic change happens, the agent records whether it was added, updated, or removed, and why. If the change was caused by a constraint, the record can include a trigger for checking it again later. When that condition becomes true, the agent should remind the user that an old route may be reopened.
+When an important semantic change happens, the agent records whether it was added, updated, or removed, and why. If the change was caused by a constraint, the record can include a trigger for checking it again later.
 
-Full audits are initiated or confirmed by the user. The agent may still proactively warn about direct contradictions or clearly stale compromises.
+Full audits are initiated or confirmed by the user. Before auditing, the agent should inspect the real project, refresh or confirm realization semantics, and refresh or confirm artifact checks. Full audit output should cover every current user semantic and every active realization semantic.
 
 ## Installation
 
@@ -76,8 +79,10 @@ After installation, ask the agent to use `semantic-alignment` for a project, des
 By default, records are stored under:
 
 ```text
-.semantic-alignment/<task-slug>/
+.semantic-alignment/<project-slug>/
 ```
+
+The directory may live under a project root or a workspace root. In a workspace with multiple projects, each project should use a distinct slug. A project slug is a stable lowercase kebab-case identifier, usually derived from the repository root, package/project name, or project directory.
 
 The main files are:
 

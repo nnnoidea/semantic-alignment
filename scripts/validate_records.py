@@ -216,7 +216,7 @@ def validate_record_dir(record_dir):
 
 def main():
     parser = argparse.ArgumentParser(description="Validate semantic-alignment record files.")
-    parser.add_argument("record_dir", help="Path to .semantic-alignment/<task-slug>/ or another writable record directory")
+    parser.add_argument("record_dir", help="Path to .semantic-alignment/<project-slug>/ or another writable record directory")
     args = parser.parse_args()
 
     errors = validate_record_dir(args.record_dir)

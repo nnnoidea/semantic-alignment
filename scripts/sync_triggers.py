@@ -164,7 +164,7 @@ def sync(record_dir, check=False):
 
 def main():
     parser = argparse.ArgumentParser(description="Generate recheck-triggers.md from user-semantic-ledger.md.")
-    parser.add_argument("record_dir", help="Path to .semantic-alignment/<task-slug>/ or another record directory")
+    parser.add_argument("record_dir", help="Path to .semantic-alignment/<project-slug>/ or another record directory")
     parser.add_argument("--check", action="store_true", help="Only check whether recheck-triggers.md is already in sync")
     args = parser.parse_args()
 

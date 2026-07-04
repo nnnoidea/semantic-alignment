@@ -69,7 +69,7 @@ A recheck trigger should name the condition that makes the old semantic change q
 
 ## Repeated Audits
 
-Keep `audits.md` as a rolling ledger with a current summary at the top:
+Keep `audits.md` as a current summary plus recent material audit events, with the current summary at the top:
 
 - latest alignment state
 - open drift
@@ -77,9 +77,27 @@ Keep `audits.md` as a rolling ledger with a current summary at the top:
 - reopen triggers
 - current recommendations
 
-Append material audits as events with date, trigger, inputs checked, findings, decision, follow-up status, and initiator. Mark findings `open`, `resolved`, `accepted`, or `superseded`. Do not delete normal history; remove or rewrite only duplicate, mistaken, sensitive, or noisy entries.
+Append material audits as events with date, trigger, inputs checked, findings, decision, follow-up status, and initiator. Mark findings `open`, `resolved`, `accepted`, or `superseded`. Do not delete normal history; remove or rewrite only duplicate, mistaken, sensitive, or noisy entries. When older resolved, accepted, or superseded events make routine reads noisy, move them to `archive/` and leave the current summary plus recent decision-relevant events in `audits.md`.
 
 When an audit changes current user semantics, update `user-semantics.md`, add a ledger entry, and sync triggers. When it changes realization semantics, update `realization-semantics.md` and re-check affected artifacts.
+
+## Realization Refresh Gate
+
+Before a full audit, do not trust `realization-semantics.md` just because it exists. First inspect the real project/artifact, update stale intended-artifact semantics, add missing realization rows, mark obsolete rows `revised` or `rejected`, and refresh `artifact-checks.md` against the updated active realization semantics. If inspection shows no realization change is needed, record that as `unchanged` with concrete evidence.
+
+Add this table to each full audit event before the coverage tables:
+
+```markdown
+#### Realization Refresh
+
+| Refresh item | Status | Evidence | Notes |
+| --- | --- | --- | --- |
+| inspect-real-project | done | <files, commands, or artifacts inspected> | <short note> |
+| update-realization-semantics | done/unchanged | <realization rows changed or evidence no change was needed> | <short note> |
+| refresh-artifact-checks | done/unchanged | <artifact checks changed or evidence existing checks are current> | <short note> |
+```
+
+`scripts/check_audit_coverage.py <record-dir>` rejects full audit events that omit this table, omit a required refresh item, use any status other than `done` or `unchanged`, or leave evidence empty. Treat `unchanged` as a positive claim that the existing record was checked against the real project and remains current.
 
 ## Audit Output
 
@@ -92,3 +110,41 @@ Report concise decision-relevant findings:
 - `Reopen triggers`: constraints or assumptions that should cause a prior semantic choice to be revisited.
 
 Use `artifact-checks.md` as input to `audits.md`, not as a second audit. `artifact-checks.md` records concrete pass/partial/fail checks; `audits.md` synthesizes alignment/drift/contradiction.
+
+## Exhaustive Coverage Gate
+
+A full audit is incomplete unless the latest audit event first passes the realization refresh gate, then checks every current user semantic and every active realization semantic. Use `user-semantic-ledger.md` current `yes` rows, excluding delete operations, as the mechanically checkable user-semantic item set. Use active rows in the refreshed `realization-semantics.md` as the realization item set.
+
+Add these two tables to each full audit event:
+
+```markdown
+#### User Semantic Coverage
+
+| User semantic ID | Coverage | Evidence | Notes |
+| --- | --- | --- | --- |
+| U1 | satisfied/partial/unmet/conflict/unknown | <artifact checks, files, or missing evidence> | <short reason> |
+
+#### Realization Semantic Coverage
+
+| Realization ID | Grounding | User basis | Conflict | Notes |
+| --- | --- | --- | --- | --- |
+| R1 | direct/aligned-addition/risky-addition/conflict/unknown | <linked user semantic IDs or none> | yes/no/unknown | <short reason> |
+```
+
+Coverage meanings:
+
+- `satisfied`: the artifact and realization evidence currently satisfy this user semantic.
+- `partial`: some evidence satisfies it, but a material part is missing or unverified.
+- `unmet`: current realization or artifact evidence does not satisfy it.
+- `conflict`: realization semantics or artifacts directly contradict it.
+- `unknown`: evidence is missing or was not checked; do not treat this as aligned.
+
+Grounding meanings:
+
+- `direct`: the realization is directly expressed by user semantics.
+- `aligned-addition`: the user did not directly say it, but it serves linked user semantics.
+- `risky-addition`: the user did not directly say it and it may affect meaning, scope, UX, architecture, or delivery criteria.
+- `conflict`: the realization conflicts with current user semantics.
+- `unknown`: the grounding cannot be established from the records.
+
+Run `scripts/check_audit_coverage.py <record-dir>` before reporting a full audit as complete. The script checks only coverage shape: every current user semantic ID and active realization ID must appear exactly once with allowed status values. The agent still judges the correctness of the statuses and evidence.

@@ -7,7 +7,7 @@ Load this reference when interpreting whether a user message changes project mea
 Track two semantic layers plus artifact checks:
 
 - **User semantics**: goals, non-negotiables, preferences, global direction, local requirements, constraints, review criteria, and later corrections stated or accepted by the user.
-- **Realization semantics**: intended artifact semantics after the agent interprets user semantics, fills gaps, and chooses implementation/design details.
+- **Realization semantics**: current intended artifact semantics after the agent interprets user semantics, fills gaps, and chooses implementation/design details.
 - **Artifact checks**: concrete pass/partial/fail notes from inspecting the actual code, design, document, UI, or skill against realization semantics.
 
 The artifact itself is the product. Do not create a separate artifact-semantics layer.
@@ -52,6 +52,8 @@ Each entry needs semantic ID, operation, category, before, after, reason, source
 
 A recheck trigger is an observable condition whose truth means "revisit this ledger entry and decide whether the semantic change still holds." It is not an open task, recommendation, or action. Put actions in `Recheck method`, `audits.md`, or conversation.
 
+Triggers are meant to be evaluated against new evidence: user statements, implementation discoveries, artifact checks, dependency/tool availability, permissions, assets, audit findings, and final-delivery checks. If the condition appears true, the agent must read the linked ledger row before deciding whether to keep, reopen, or change the prior semantic decision.
+
 Ledger entries may come from direct user clarification, user acceptance of an agent proposal, user acceptance of a limitation/compromise, implementation discovery, external constraints, or audit findings. Do not persist unaccepted agent suggestions that have no actual effect.
 
 ## Change Reasons
@@ -73,7 +75,7 @@ Audit the reason: optimization must still serve the goal; constraint needs a rec
 
 ## Realization Classification
 
-Before implementing non-obvious agent choices, classify them:
+Before and during implementation of non-obvious agent choices, classify and record them:
 
 - `grounded`: directly follows from user semantics or local conventions
 - `added`: user did not say it, but it is a reasonable detail
@@ -81,3 +83,5 @@ Before implementing non-obvious agent choices, classify them:
 - `divergent`: conflicts with current user semantics
 
 Proceed with grounded choices. Record added choices. Surface or ask before risky choices. Stop, correct, or explicitly confirm divergent choices.
+
+`realization-semantics.md` should stay current. It is not the realization history ledger. Keep active rows as the main working set. Use `revised` or `rejected` for recent non-current rows only when they clarify the current route; archive older non-current realization material instead of letting routine reads accumulate stale history.

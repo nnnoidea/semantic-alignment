@@ -149,7 +149,7 @@ def lint(record_dir):
 
 def main():
     parser = argparse.ArgumentParser(description="Lint semantic-alignment records for semantic-quality risks.")
-    parser.add_argument("record_dir", help="Path to .semantic-alignment/<task-slug>/ or another record directory")
+    parser.add_argument("record_dir", help="Path to .semantic-alignment/<project-slug>/ or another record directory")
     parser.add_argument("--strict", action="store_true", help="Exit non-zero when warnings are found")
     args = parser.parse_args()
 
