@@ -1,16 +1,7 @@
-# 示例：semantic-alignment-skill
+# V2 记录示例
 
 [English README](README.md)
 
-这个目录放的是 `semantic-alignment` 这个 skill 在设计和实现过程中产生的语义记录。
+这个最小示例展示项目内新版记录模型：`project.json` 项目标识、完整的当前用户语义、简单直接关联、已退休的修订历史、独立妥协，以及尚未建立审计基线时的差异报告。
 
-它展示了一个真实项目里的记录会怎么变化：
-
-- `user-semantics.md` 保存当前用户可读的语义基线。
-- `user-semantic-ledger.md` 记录已接受的语义变化、原因和 recheck triggers。
-- `realization-semantics.md` 记录这个 skill 文件打算表达和实现的语义。
-- `artifact-checks.md` 检查真实 skill 文件是否符合这些实现语义。
-- `audits.md` 记录审计摘要和审计事件。
-- `structured/` 保存部分记录的 JSONL 镜像。
-
-这些文件只是示例。安装或运行 skill 不依赖它们。
+真实项目完成首次语义审计后，`audit-state.json` 会按语义保存审计结论、直接相关上下文和低成本证据文件状态版本。每完成一条语义就通过工具记录，`alignment-report.md` 会自动重新生成。

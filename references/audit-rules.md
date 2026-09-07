@@ -1,150 +1,129 @@
 # Audit Rules
 
-Load this reference when the user requests/accepts an audit, when recommending an audit, before final delivery with drift signals, or when a constraint/recheck trigger may reopen a prior route.
+Load this reference before an incremental or full audit, when evaluating invalidation, or when a compromise may need reopening.
 
-## Audit Lenses
+## Audit Objective
 
-Use three lenses:
+An audit compares complete current user semantics with implementation semantics derived from the real artifact. It answers:
 
-- **Internal user audit**: user goals, global semantics, and local semantics are mutually consistent.
-- **User-to-realization audit**: realization semantics are grounded in user semantics, reasonable additions, risky, or divergent.
-- **Realization-to-artifact audit**: the real artifact matches realization semantics and still serves user semantics.
+- what user semantics the artifact satisfies, partially satisfies, omits, or conflicts with
+- what behavior the artifact contains that the user did not explicitly request
+- whether prior audit conclusions remain valid
+- whether an active compromise should be revisited
 
-Full audits are user-initiated or user-accepted. The agent may recommend an audit, but should not silently run a full audit unless the user asks, accepts, or a material contradiction/risk appears at a natural checkpoint.
+Do not audit plans against plans. Inspect the code, design, document, UI, configuration, tests, generated output, or other actual deliverable.
 
-## Audit Recommendation Triggers
+Resolve the artifact through the workspace index before auditing. Audit state belongs only to the resolved project's `<project-root>/.semantic-alignment/`; never aggregate or copy per-project coverage into the workspace index. Direct related semantics are also project-local.
 
-Recommend an audit when:
+## Audit Validity
 
-- many files, screens, components, sections, or public-facing behaviors changed
-- a core artifact changed: architecture, data model, API contract, design system, navigation, workflow, public copy, build/deploy flow, or skill instructions
-- several ledger entries or realization changes accumulated since the last audit
-- any artifact check is `partial` or `fail`
-- any realization semantic is `risky`, or multiple active realization semantics are `added`
-- current work touches a user non-negotiable or review focus item
-- a constraint recheck method passes or its evidence materially changes
-- the user corrects direction, expresses doubt, asks whether the result still matches intent, or reopens a prior concern
+A cached coverage result is valid only when:
 
-Proactively warn without a full audit only for direct, material signals: user-semantic contradiction, active non-negotiable conflict, divergent realization semantic, material artifact failure, or clearly resolved blocking constraint.
-
-## Constraint Recheck Rules
-
-Constraint-driven changes must be checkable later. For meaningful constraint entries, preserve:
-
-- blocked route
-- accepted route
-- evidence
-- recheck method
-- reopen trigger
-- last checked, if known
-- status: `active`, `unverified`, `resolved`, or `superseded`
-
-Example recheck methods:
-
-- command availability: run `<command> --version`
-- dependency availability: inspect lockfile/package manifest or import/build
-- asset availability: check expected file path
-- API capability: check docs, schema, feature flag, or integration response
-- permission: retry allowed operation or verify access state
-- implementation feasibility: rerun failed test/build/prototype
-
-Only remind that a constraint may be gone when the recheck method passes, evidence changed, or the user states the blocker is gone. Otherwise mark it `unverified` and suggest checking at the next audit.
-
-## Reopen Decisions
-
-For possible return-to-history decisions:
-
-1. Verify the trigger if objective evidence exists.
-2. Read the linked ledger entry before recommending a route change.
-3. State which prior semantic/route may need reopening.
-4. Ask whether to revisit the prior route when switching cost, scope, or product meaning is material.
-5. Update the ledger only after the user accepts a baseline change.
-6. Run `scripts/sync_triggers.py <record-dir>` after ledger trigger text or currentness changes. Edit trigger check metadata in `recheck-triggers.md` only for method/status/last-checked/notes.
-
-If the user states in the same message that the trigger is true and asks to keep the old compromised route, do not treat the reminder as unnecessary. The response must still say that the old compromise is now stale or recheckable, name the better/prior route, and then explain whether the user's wording is being treated as explicit confirmation to keep the compromised route. If the wording is not explicit, pause and ask.
-
-Never resolve, supersede, or remove a stale-route trigger only in records. A stale-route reminder is successful only when it is visible in the user-facing response or the user has already explicitly acknowledged it.
-
-A recheck trigger should name the condition that makes the old semantic change questionable. Do not use recheck triggers to store open tasks, recommendations, or the action to perform after the trigger fires.
-
-## Repeated Audits
-
-Keep `audits.md` as a current summary plus recent material audit events, with the current summary at the top:
-
-- latest alignment state
-- open drift
-- open contradictions
-- reopen triggers
-- current recommendations
-
-Append material audits as events with date, trigger, inputs checked, findings, decision, follow-up status, and initiator. Mark findings `open`, `resolved`, `accepted`, or `superseded`. Do not delete normal history; remove or rewrite only duplicate, mistaken, sensitive, or noisy entries. When older resolved, accepted, or superseded events make routine reads noisy, move them to `archive/` and leave the current summary plus recent decision-relevant events in `audits.md`.
-
-When an audit changes current user semantics, update `user-semantics.md`, add a ledger entry, and sync triggers. When it changes realization semantics, update `realization-semantics.md` and re-check affected artifacts.
-
-## Realization Refresh Gate
-
-Before a full audit, do not trust `realization-semantics.md` just because it exists. First inspect the real project/artifact, update stale intended-artifact semantics, add missing realization rows, mark obsolete rows `revised` or `rejected`, and refresh `artifact-checks.md` against the updated active realization semantics. If inspection shows no realization change is needed, record that as `unchanged` with concrete evidence.
-
-Add this table to each full audit event before the coverage tables:
-
-```markdown
-#### Realization Refresh
-
-| Refresh item | Status | Evidence | Notes |
-| --- | --- | --- | --- |
-| inspect-real-project | done | <files, commands, or artifacts inspected> | <short note> |
-| update-realization-semantics | done/unchanged | <realization rows changed or evidence no change was needed> | <short note> |
-| refresh-artifact-checks | done/unchanged | <artifact checks changed or evidence existing checks are current> | <short note> |
+```text
+same user semantic revision
++ same direct related-semantic set and revisions
++ same evidence scope
++ same evidence file-state versions
++ no unreviewed artifact changes that could alter the mapping
 ```
 
-`scripts/check_audit_coverage.py <record-dir>` rejects full audit events that omit this table, omit a required refresh item, use any status other than `done` or `unchanged`, or leave evidence empty. Treat `unchanged` as a positive claim that the existing record was checked against the real project and remains current.
+The first three conditions allow direct reuse. The artifact snapshot supplies the fourth: every changed path must be inspected for impact on existing semantics and for unrequested implementation behavior before a new trusted snapshot is finalized.
 
-## Audit Output
+Never infer validity from elapsed time, file names alone, or the fact that user semantics did not change.
 
-Report concise decision-relevant findings:
+File-state versions use type, size, modification time, and mode. They intentionally avoid content hashing and Git object IDs. Audit-rule or semantic-model document edits do not automatically invalidate existing conclusions; change user semantics explicitly when the accepted design meaning changes.
 
-- `Aligned`: user semantics, realization semantics, and checked artifact are consistent.
-- `Added by agent`: details the agent introduced that the user did not explicitly request.
-- `Potential drift`: semantics that may no longer serve the goal or global direction.
-- `Contradictions`: direct conflicts between goal, global semantics, local semantics, realization semantics, or artifact.
-- `Reopen triggers`: constraints or assumptions that should cause a prior semantic choice to be revisited.
+## Incremental Audit
 
-Use `artifact-checks.md` as input to `audits.md`, not as a second audit. `artifact-checks.md` records concrete pass/partial/fail checks; `audits.md` synthesizes alignment/drift/contradiction.
+Incremental audit is the default after a trusted baseline exists.
 
-## Exhaustive Coverage Gate
+1. Run `audit.py plan`.
+2. Reaudit every missing or stale user semantic, loading its direct `related` semantics as context.
+3. Inspect every added, modified, and deleted artifact path.
+4. Record each completed semantic conclusion immediately through `audit.py record-coverage`; this is the durable checkpoint for context recovery.
+5. Add, revise, accept, or resolve implementation differences.
+6. Evaluate active compromises related to the changed scope or new evidence.
+7. Finalize the audit only after every reported artifact change was reviewed.
 
-A full audit is incomplete unless the latest audit event first passes the realization refresh gate, then checks every current user semantic and every active realization semantic. Use `user-semantic-ledger.md` current `yes` rows, excluding delete operations, as the mechanically checkable user-semantic item set. Use active rows in the refreshed `realization-semantics.md` as the realization item set.
+Unchanged coverage remains reusable even when unrelated semantics are added or changed. Do not rewrite it merely to produce a fresh timestamp.
 
-Add these two tables to each full audit event:
+## Full Audit
 
-```markdown
-#### User Semantic Coverage
+A full audit is required when:
 
-| User semantic ID | Coverage | Evidence | Notes |
-| --- | --- | --- | --- |
-| U1 | satisfied/partial/unmet/conflict/unknown | <artifact checks, files, or missing evidence> | <short reason> |
+- no trusted artifact baseline exists
+- v1 records were migrated
+- the configured artifact scope changed and prior coverage cannot be related safely
+- evidence mappings are missing or known to be incomplete
 
-#### Realization Semantic Coverage
+A full audit is normally preferable when the user requests it, audit rules invalidate all prior judgments, or a structural change makes existing evidence mappings unreliable. A goal or global semantic change does not by itself invalidate unrelated semantics.
 
-| Realization ID | Grounding | User basis | Conflict | Notes |
-| --- | --- | --- | --- | --- |
-| R1 | direct/aligned-addition/risky-addition/conflict/unknown | <linked user semantic IDs or none> | yes/no/unknown | <short reason> |
-```
+Full does not mean writing an execution log. It means covering every current user semantic and inspecting the complete configured artifact scope for additions.
 
-Coverage meanings:
+## Two-Direction Coverage
 
-- `satisfied`: the artifact and realization evidence currently satisfy this user semantic.
-- `partial`: some evidence satisfies it, but a material part is missing or unverified.
-- `unmet`: current realization or artifact evidence does not satisfy it.
-- `conflict`: realization semantics or artifacts directly contradict it.
-- `unknown`: evidence is missing or was not checked; do not treat this as aligned.
+### User semantics to artifact (`U → A`)
 
-Grounding meanings:
+For every missing or invalidated user semantic, inspect that semantic and its direct related semantics, then record:
 
-- `direct`: the realization is directly expressed by user semantics.
-- `aligned-addition`: the user did not directly say it, but it serves linked user semantics.
-- `risky-addition`: the user did not directly say it and it may affect meaning, scope, UX, architecture, or delivery criteria.
-- `conflict`: the realization conflicts with current user semantics.
-- `unknown`: the grounding cannot be established from the records.
+- status: `satisfied`, `partial`, `unmet`, `conflict`, or `unknown`
+- implementation semantics observed in the artifact
+- source and relationship classification
+- complete evidence scope
+- concise reasoning
 
-Run `scripts/check_audit_coverage.py <record-dir>` before reporting a full audit as complete. The script checks only coverage shape: every current user semantic ID and active realization ID must appear exactly once with allowed status values. The agent still judges the correctness of the statuses and evidence.
+### Artifact changes to implementation semantics (`ΔA → I`)
+
+Inspect all changed paths even when no user semantic currently references them. Determine whether they introduce, enhance, remove, substitute, narrow, or contradict behavior.
+
+This pass is mandatory. Without it, tests, checksums, retries, telemetry, public copy, permission changes, or other agent additions can remain invisible.
+
+## Evidence Scope
+
+Use the narrowest scope that completely proves the conclusion:
+
+- implementation file plus relevant configuration
+- component directory when behavior is distributed
+- generated artifact when source alone does not prove the output
+- tests only as supporting evidence, not as proof that production behavior exists
+
+The default whole-project snapshot uses Git tracked and non-ignored files when Git is available. Pass explicit `--scope` values for ignored generated outputs or other artifact directories that still carry product meaning; explicit scopes are scanned from the filesystem.
+
+Overly broad evidence causes needless invalidation. Overly narrow evidence creates unsafe cache hits. If the complete scope cannot be established, mark coverage `unknown` or perform a full audit.
+
+## Difference Judgment
+
+Report decision-relevant differences, including beneficial additions. Do not flood the report with syntax, private helper names, command history, or mechanically equivalent refactors.
+
+Impact guidance:
+
+- `low`: does not change user-visible behavior or meaningful operating constraints
+- `medium`: changes behavior, maintenance, performance, failure handling, or review expectations
+- `high`: changes goals, architecture, public behavior, security/privacy, irreversible data handling, or a non-negotiable
+
+Direct conflicts and high-impact unrequested additions should be surfaced immediately. Lower-impact differences may be delivered together at the audit checkpoint.
+
+## Compromise Recheck
+
+A compromise is relevant when the current task touches its affected semantics/scope or evidence suggests its recheck condition may be true.
+
+If relevant:
+
+1. verify the condition when possible
+2. state the original target and accepted gap
+3. show the new evidence
+4. ask before a material route change
+
+Do not repeatedly remind the user when neither the affected scope nor the recheck condition is relevant.
+
+## Completion Gate
+
+An audit may be finalized when:
+
+- every current user semantic has current coverage
+- no cached difference has stale evidence
+- every changed artifact path has been inspected
+- affected compromises were evaluated
+- unknowns and unresolved differences are reported rather than hidden
+
+`scripts/audit.py finalize` mechanically enforces the first three structural conditions and records the trusted artifact snapshot. Semantic correctness remains the auditing agent's responsibility.

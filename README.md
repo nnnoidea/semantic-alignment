@@ -2,105 +2,118 @@
 
 [中文说明](README.zh-CN.md)
 
-AI agents usually do not fail by refusing to work. They fail by quietly turning the work into something else.
+AI agents often fail not by refusing to implement, but by quietly producing something different from what the user meant.
 
-Users describe goals. Agents fill gaps, work around constraints, add details, and choose routes. At first, each choice may look reasonable. Over time, the project can drift: no one remembers what the user actually asked for, which parts were agent assumptions, and which decisions were only temporary compromises.
+`semantic-alignment` preserves the complete user-design baseline, derives implementation semantics from the real artifact, and shows the user the differences. Users do not need to read every internal record; they can judge whether the differences are acceptable.
 
-`semantic-alignment` keeps that drift visible.
+It is intentionally limited to durable product and system design. Routine experiments, research runs, transient analysis, and ordinary writing do not get semantic records unless the user explicitly requests them or the artifact is a canonical contract for future implementation. Accepted experimental conclusions are recorded as decisions in the owning product project, not as separate experiment projects.
 
-It asks the agent to remember what the user really wants, record what it adds or changes during implementation, and audit the result item by item. Users should also initiate audits at key checkpoints to keep the project meaning from quietly drifting.
+## Core Design
 
-In short: this skill helps agents keep proving that the thing they built is still the thing the user wanted.
+The workflow persistently authors only information that cannot be recovered reliably from code:
 
-## How Does It Solve It?
+- user design semantics: goals, principles, global/local design, constraints, and acceptance criteria
+- compromises: original target, actual choice, gap, reason, evidence, and recheck condition
 
-The skill separates project meaning into a few durable records:
+Implementation semantics are not maintained as a second hand-written specification during development. They are derived by auditing the actual code, design, document, configuration, tests, or output.
 
-- `user-semantics.md`: what the user currently wants
-- `user-semantic-ledger.md`: what changed, from what to what, and why
-- `recheck-triggers.md`: observable conditions that mean an old decision may need review
-- `realization-semantics.md`: what the agent intends to realize after interpreting the user
-- `artifact-checks.md`: whether the real code, design, or document matches that intent
-- `audits.md`: the alignment judgment across those layers
+Audit results are cached against:
 
-The important split is this: user meaning, agent-added realization meaning, and the real artifact are not treated as the same thing.
+```text
+user semantic revision + direct related semantics and revisions + evidence scope/file-state versions + reviewed artifact snapshot
+```
 
-## What Does It Audit?
+Each semantic can retain a small, untyped, one-level `related` set. A semantic audit starts from one user semantic and loads only its direct related context. Unchanged results are reused, and unrelated semantic changes do not invalidate them.
 
-At review time, the skill pushes the agent to answer concrete questions instead of writing a vague summary:
+After auditing a semantic and its small related context, the agent records the conclusion immediately through the tool instead of waiting for the entire audit. Persisted per-semantic coverage makes interrupted or compacted work resumable.
 
-- Which user semantics are satisfied, partial, unmet, unknown, or in conflict?
-- Which implementation details were directly requested by the user?
-- Which details were added by the agent but still serve the user's semantics?
-- Which added details are risky or conflict with the user's semantics?
-- Does the real artifact match what the agent believed it implemented?
-- Did an old constraint disappear, making a previous compromise worth reopening?
+## What Users See
 
-For example, if export was unavailable and the project used copy-to-clipboard, a trigger can remind the agent to revisit that route once export becomes available. If an agent adds autosave, shortcuts, navigation, or public copy that the user never requested, the audit should classify whether those additions are aligned details or semantic drift.
+The default report contains decision-relevant differences:
 
-## How Triggers Work
+- behavior added or enhanced without an explicit request
+- requested behavior that is omitted, substituted, narrowed, or contradicted
+- artifact drift
+- compromises whose recheck condition may now be relevant
 
-A recheck trigger is not a task and not a recommendation. It is an observable condition that means: "read the linked ledger entry again and decide whether this old semantic decision still holds."
+Tests, retries, validation, or checksum verification remain visible differences when the user did not request them, even if they are beneficial.
 
-The agent reads the compact trigger projection when it loads the semantic frame, before meaningful planning or delivery, when the user mentions a changed constraint, when the artifact exposes new evidence, and during audits. If a trigger appears true, the agent must read the linked ledger entry, state the old route and the now-true condition, and make the reminder visible before continuing or changing the baseline.
+## Record Set
 
-## How It Works
+Each project owns its authoritative records locally:
 
-Before a meaningful task starts, the agent reads the current semantic frame and then plans or edits from that context.
+```text
+<project-root>/.semantic-alignment/
+  project.json
+  user-semantics.md
+  semantic-ledger.jsonl
+  compromises.jsonl
+  audit-state.json
+  alignment-report.md
+```
 
-The skill separates alignment into three layers:
+- `project.json`: stable project identity and local record layout
+- `user-semantics.md`: complete current user-design baseline
+- `semantic-ledger.jsonl`: append-only user-semantic revisions with stable IDs
+- `compromises.jsonl`: durable compromises and recheck conditions
+- `audit-state.json`: implementation findings, low-cost evidence versions, coverage, and artifact snapshot
+- `alignment-report.md`: concise current differences and active compromises
 
-1. **User semantics**: what the user currently wants.
-2. **Realization semantics**: what the agent intends to realize in the artifact after interpreting the user.
-3. **Artifact checks**: whether the actual code, design, document, or output matches those realization semantics.
+User semantics, compromises, and audit conclusions are recorded through the scripts. Both Markdown views are generated; the agent does not hand-edit ledgers, audit state, or projections.
 
-When an important semantic change happens, the agent records whether it was added, updated, or removed, and why. If the change was caused by a constraint, the record can include a trigger for checking it again later.
+A multi-project workspace stores one routing-only index:
 
-Full audits are initiated or confirmed by the user. Before auditing, the agent should inspect the real project, refresh or confirm realization semantics, and refresh or confirm artifact checks. Full audit output should cover every current user semantic and every active realization semantic.
+```text
+<workspace-root>/.semantic-alignment/projects.json
+```
+
+The index contains only stable project IDs and relative paths. It is generated from project-local manifests and never duplicates semantics, compromises, differences, or audit coverage. `related` links stay inside one project; genuinely shared semantics belong to a separately registered common-parent project.
+
+## Incremental Audit
+
+```bash
+python semantic-alignment/scripts/audit.py <record-dir> plan --artifact-root <project-root>
+```
+
+The plan reports changed artifact paths, missing semantic coverage, invalidated cached results, direct related context, stale difference evidence, and whether a full audit is required. After inspecting each semantic against the real artifact and recording findings immediately, the agent finalizes a new trusted snapshot.
+
+## Compromise Reminders
+
+Compromises are recorded when the decision occurs because their reasons cannot be reconstructed safely from code. They are surfaced only when current work touches their scope or new evidence matches the recorded recheck condition.
+
+## Initialize And Migrate
+
+Initialize and register project-local v2 records:
+
+```bash
+python semantic-alignment/scripts/workspace.py init <project-root> \
+  --workspace-root <workspace-root> --project-id <stable-project-id>
+```
+
+List, resolve, verify, or rebuild the workspace index:
+
+```bash
+python semantic-alignment/scripts/workspace.py list --workspace-root <workspace-root>
+python semantic-alignment/scripts/workspace.py resolve <artifact-path> --workspace-root <workspace-root>
+python semantic-alignment/scripts/workspace.py check --workspace-root <workspace-root>
+python semantic-alignment/scripts/workspace.py check --workspace-root <workspace-root> --discover
+python semantic-alignment/scripts/workspace.py archive-project <project-id> --workspace-root <workspace-root>
+python semantic-alignment/scripts/workspace.py rebuild-index --workspace-root <workspace-root>
+```
+
+The default check validates the saved index without rescanning the workspace. Use `--discover` only when looking for unindexed project manifests.
+
+Legacy workspace-level or multi-record layouts can be consolidated into the project-local record set with `scripts/migrate_v1.py <legacy-record-dir> --into <project-root>/.semantic-alignment --source-label <label>`. Preview first, then add `--apply`. Confirmed superseded mirrors can be retained under the target archive with `--archive-only`.
+
+Preview and apply migration from v1:
+
+```bash
+python semantic-alignment/scripts/migrate_v1.py <record-dir>
+python semantic-alignment/scripts/migrate_v1.py <record-dir> --apply
+```
+
+Migration archives legacy files. Old audit conclusions are not treated as reusable cache entries because their evidence scope and file-state versions are incomplete, so one baseline full audit is required.
 
 ## Installation
 
-Install this repository as a skill named `semantic-alignment` in Codex or another compatible agent environment.
-
-The skill root is this directory:
-
-```text
-semantic-alignment/
-  SKILL.md
-  references/
-  scripts/
-  agents/
-```
-
-After installation, ask the agent to use `semantic-alignment` for a project, design, implementation, or writing task where intent may evolve over time.
-
-## Where Records Live
-
-By default, records are stored under:
-
-```text
-.semantic-alignment/<project-slug>/
-```
-
-The directory may live under a project root or a workspace root. In a workspace with multiple projects, each project should use a distinct slug. A project slug is a stable lowercase kebab-case identifier, usually derived from the repository root, package/project name, or project directory.
-
-The main files are:
-
-- `user-semantics.md`: the current semantic baseline for the user
-- `user-semantic-ledger.md`: accepted semantic changes and reasons
-- `recheck-triggers.md`: conditions for revisiting prior decisions
-- `realization-semantics.md`: what the agent intends to realize in the artifact
-- `artifact-checks.md`: checks between the real artifact and realization semantics
-- `audits.md`: alignment, drift, contradictions, and recommendations
-
-These records are project-process metadata, not the product itself.
-
-## Example
-
-`examples/semantic-alignment-skill/` contains the semantic records created while developing this skill.
-
-They are included only as an example of how records can evolve in a real project. Installing or running the skill does not depend on them.
-
-## Status
-
-This skill is currently packaged as a Codex-style skill, while the record model is intended to remain platform-neutral.
+Install this repository as a Codex-compatible skill named `semantic-alignment`. The record model is designed to remain platform-neutral.

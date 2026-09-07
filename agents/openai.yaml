@@ -1,4 +1,4 @@
 interface:
   display_name: "Semantic Alignment"
-  short_description: "Audit intent, realization, and artifact alignment."
-  default_prompt: "Use $semantic-alignment to track user intent, realization semantics, semantic drift, and artifact alignment for this project."
+  short_description: "Keep durable product and system implementation aligned with user design."
+  default_prompt: "Use $semantic-alignment for durable product or system design work: preserve current user semantics through tools, audit real artifacts incrementally, report differences, and retain compromises. Skip routine experiments and ordinary writing unless explicitly requested or they define a lasting implementation contract."

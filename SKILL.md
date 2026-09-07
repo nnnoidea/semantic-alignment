@@ -1,133 +1,217 @@
 ---
 name: semantic-alignment
-description: Mandatory project/design semantic alignment workflow. Use before and during any non-trivial project design, implementation, refactor, product, writing, UI/UX, architecture, or artifact creation task where an agent must preserve user goals, read existing semantic records, track global/local semantics, record semantic changes and reasons, classify agent assumptions, manage constraint-driven compromises, remind users when an audit may be needed, and check consistency between user intent, agent interpretation, and actual code/design/artifacts.
+description: Preserve durable product and system design semantics, derive implementation semantics by auditing real artifacts, report differences, and retain compromises. Use when work creates or changes long-lived behavior, architecture, interfaces, UX, operational invariants, or acceptance criteria. Do not use for routine experiments, research runs, transient analysis, or ordinary document writing unless the user explicitly requests semantic tracking or the artifact is itself a durable implementation contract.
 ---
 
 # Semantic Alignment
 
-Use this skill to keep non-trivial project/design/artifact work aligned with the user's real goal as conversation, constraints, implementation choices, and artifacts evolve.
+Keep the artifact faithful to the user's actual design meaning without making the agent maintain a second hand-written implementation specification.
 
-Load this skill before planning or editing. Unread semantic records do not protect alignment.
+The durable model is:
 
-## Startup Checklist
+- complete current user semantics with small direct `related` sets
+- retired user-semantic history that is excluded from current audits
+- explicit compromises that code cannot explain
+- implementation semantics derived from the real artifact by audit
+- reusable audit results that are invalidated by semantic or artifact file-state changes
+- a concise user-facing difference report
 
-Before substantial work, do this in order:
+Do not treat implementation plans, code comments, or prior agent claims as implementation truth. Inspect the artifact.
 
-1. Identify the project and record directory, usually `.semantic-alignment/<project-slug>/` under the relevant project or workspace. The slug is a stable project identifier, not an individual work item.
-   - Prefer an explicit user-provided project name/slug.
-   - Otherwise use the nearest repository root directory name.
-   - Otherwise use a project manifest/package name when available.
-   - Otherwise use the current project directory name.
-   - Normalize to lowercase kebab-case. If multiple plausible projects match, list the candidates and ask instead of inventing a new baseline.
-2. If it exists, read `user-semantics.md`, `index.md`, and `recheck-triggers.md`.
-3. Choose the recording level: None, Light, Standard, or Deep.
-4. If Standard/Deep records are missing, create them with `scripts/init_records.py`.
-5. Load the required reference before acting: semantic change -> `semantic-model.md`; record edits -> `operational-workflow.md`; audit/reopen -> `audit-rules.md`; schema edits -> `semantic-record-template.md`.
+## Activation Boundary
+
+Use this skill when the work creates or changes meaning that future implementation must continue to preserve, including durable product behavior, system architecture, interfaces, UX rules, operational invariants, or acceptance criteria.
+
+Do not activate it merely because work is non-trivial. By default, do not create semantic records for:
+
+- individual experiments, training/evaluation runs, parameter sweeps, or transient research state
+- routine analysis, benchmark execution, or result reporting
+- ordinary documents, presentations, summaries, copy edits, or other writing tasks
+- temporary scripts, generated outputs, or disposable prototypes
+
+An experiment result becomes relevant only when the user accepts it as a durable product or system decision; record that accepted decision in the owning product project, not the experiment run. A document is in scope only when it is itself the canonical design specification or contract that governs later implementation. Explicit user requests for semantic tracking always take precedence.
+
+## Startup
+
+1. Identify the workspace root and the artifact path being changed.
+2. Resolve the artifact path through the saved workspace index:
+
+```bash
+python semantic-alignment/scripts/workspace.py resolve <artifact-path> \
+  --workspace-root <workspace-root>
+```
+
+3. The resolved record directory must be `<project-root>/.semantic-alignment/`. Project-local records are authoritative; the workspace index is routing metadata only. If no project is registered, initialize it with `workspace.py init` instead of inventing a record path.
+4. If v1 files such as `realization-semantics.md` exist, read `references/operational-workflow.md` and run a dry-run migration before changing records. Use `migrate_v1.py --into` when old workspace-level or multi-record layouts must be consolidated into the project-local v2 record set.
+5. For an existing v2 record set, read:
+   - `user-semantics.md`
+   - active entries in `compromises.jsonl`
+   - `alignment-report.md`
+6. Choose the lightest recording level that protects alignment.
+7. Before meaningful artifact work, run an incremental audit plan when a trusted baseline exists:
+
+```bash
+python semantic-alignment/scripts/audit.py <project-root>/.semantic-alignment/ plan \
+  --artifact-root <project-root>
+```
 
 ## Core Workflow
 
-1. Establish the current semantic frame before substantial work:
-   - read `user-semantics.md`, `index.md`, and `recheck-triggers.md` when they exist and are not already fresh in context
-   - reread when the session is new, context was compacted, record files may have changed, the user asks for an audit, or the user message appears to change project meaning
-2. Compare new user requests against the current frame:
-   - direct conflicts with current goals, principles, constraints, review criteria, or local requirements
-   - likely semantic add/update/delete
-   - active recheck trigger condition becoming true
-   - evidence from real artifacts, tool availability, permissions, dependencies, user statements, or audit findings that may satisfy an active recheck trigger
-3. Do not silently change the user-semantic baseline. Ask for confirmation when a change affects goal, product meaning, architecture, UX direction, public copy, delivery criteria, or a meaningful route choice.
-   - when a recheck trigger becomes true, state the old compromise/route and the now-true condition before continuing
-   - if the user simultaneously says to keep the old compromised route, still surface the reminder once; treat it as confirmation only when the wording is explicit
-4. Record accepted semantic changes in `user-semantic-ledger.md`, then run `scripts/sync_triggers.py <record-dir>` if recheck triggers changed, then project the current state into `user-semantics.md`.
-5. During implementation, keep `realization-semantics.md` current as non-obvious intended artifact semantics appear, change, or become obsolete; classify agent additions as `grounded`, `added`, `risky`, or `divergent`.
-6. After implementation or before delivery, check the real artifact against realization semantics in `artifact-checks.md`.
-7. Before a full audit, inspect the real project/artifact, update or confirm `realization-semantics.md`, then refresh or confirm `artifact-checks.md`; only the updated realization semantics are valid audit input.
-8. For full audits, cover every current user semantic and every active realization semantic; run `scripts/check_audit_coverage.py <record-dir>` before claiming completion.
-9. Recommend, or run if user-requested/accepted, an audit when meaningful drift signals exist.
+### 1. Maintain user semantics
 
-## Recheck Trigger Use
+Record durable product/design meaning, not every utterance. User semantics include goals, principles, context, global and local design, system behavior, content, process constraints, and review criteria.
 
-Recheck triggers are early-warning conditions for old semantic decisions. They are not tasks and not recommendations. When a trigger appears true, read the linked `user-semantic-ledger.md` row, identify the old decision or compromise, and decide whether the baseline should be reopened.
+Use stable semantic IDs. Keep only the latest non-deleted revision in the active baseline; older revisions are retired history and are not loaded into ordinary audits. An update invalidates that semantic automatically.
 
-Read and evaluate `recheck-triggers.md`:
+Record every semantic mutation through `scripts/record_event.py`. Do not hand-edit the ledger or generated views. `related` is an optional, untyped set of directly related semantic IDs. The tool keeps both ends synchronized; read only one level and do not construct a typed dependency graph or transitive closure.
 
-- at startup when loading an existing semantic frame
-- before meaningful planning, implementation, or delivery when the frame may be stale
-- when the user says a constraint, tool, permission, dependency, asset, or requirement has changed
-- when implementation or artifact checks reveal new evidence relevant to a recorded trigger
-- before and during user-requested audits
-
-If a trigger appears true, make the reminder visible to the user before continuing with the old route, resolving the trigger, or changing the semantic baseline.
-
-## Record Setup
-
-For Standard or Deep tracking, use a project- or workspace-local metadata directory. The record unit is the project. Workspace-local storage is acceptable when a workspace contains multiple projects, as long as each project has a distinct slug:
-
-```text
-.semantic-alignment/<project-slug>/
-```
-
-`<project-slug>` is a stable, lowercase kebab-case project identifier derived from an explicit user name, repository root, manifest/package name, or project directory. Do not use a short-lived task name as the slug.
-
-Create and maintain records with scripts:
+`related` never crosses project record sets. If several projects share one genuine product/design semantic, place that semantic in a separately registered project at their smallest meaningful common parent instead of linking ledgers or copying the semantic into the workspace index.
 
 ```bash
-python semantic-alignment/scripts/init_records.py .semantic-alignment/<project-slug>/ --title "<Project Name>"
-python semantic-alignment/scripts/record_event.py .semantic-alignment/<project-slug>/ ledger --operation add --category process --before none --after "..." --reason clarification --source "..."
-python semantic-alignment/scripts/sync_triggers.py .semantic-alignment/<project-slug>/
-python semantic-alignment/scripts/validate_records.py .semantic-alignment/<project-slug>/
-python semantic-alignment/scripts/lint_records.py .semantic-alignment/<project-slug>/
-python semantic-alignment/scripts/check_audit_coverage.py .semantic-alignment/<project-slug>/
-python semantic-alignment/scripts/export_structured.py .semantic-alignment/<project-slug>/
+python semantic-alignment/scripts/record_event.py <record-dir> semantic \
+  --operation add --category goal --text "..." --related U2,U3 \
+  --reason clarification --source "..."
+
+python semantic-alignment/scripts/record_event.py <record-dir> semantic \
+  --operation update --id U1 --category goal --text "..." --reason correction --source "..."
 ```
 
-Standard files:
+Do not silently change the user baseline when product meaning, architecture, UX, public behavior, scope, or acceptance criteria materially change. Confirm the change first.
 
-- `user-semantics.md`: user-readable current baseline only
-- `user-semantic-ledger.md`: authoritative add/update/delete history with reasons and recheck triggers
-- `recheck-triggers.md`: generated compact current trigger projection for frequent reads
-- `realization-semantics.md`: intended artifact semantics after agent interpretation/gap filling
-- `artifact-checks.md`: mechanical pass/partial/fail artifact checks
-- `audits.md`: current audit summary plus audit events
-- `index.md`: current semantic frame and known unknowns
-- `structured/*.jsonl`: optional generated structured mirrors for selected non-user-entry records
+### 2. Record compromises immediately
 
-Keep semantic records out of source directories, design exports, release artifacts, and end-user documentation unless explicitly configured.
+A compromise is a chosen departure from a preferred target because of a constraint, uncertainty, cost, permission, dependency, asset, deadline, or feasibility limit. Code can show the resulting choice but usually cannot recover why it was accepted or when it should be revisited.
+
+Record a material compromise when the decision is made. Include the original target, actual choice, gap, reason, evidence, affected semantics, scope, observable recheck condition, and recheck method.
+
+Do not use compromises for ordinary implementation details, open tasks, speculative risks, or harmless agent additions.
+
+### 3. Derive implementation semantics by auditing artifacts
+
+Do not continuously maintain `realization-semantics.md`. Semantic audit starts from a current user semantic, loads its direct `related` semantics as a small context, and then inspects the real code, design, document, UI, configuration, tests, or generated output. This is different from a general code review: artifact inspection exists to prove or disprove user meaning.
+
+Every audit must do both:
+
+- check affected user semantics against artifact evidence
+- inspect every new or changed artifact scope for implementation behavior the user did not request
+
+This second pass prevents an audit from missing additions merely because no existing user semantic points to them.
+
+### 4. Reuse only valid audit results
+
+An audit result is reusable only while all of these remain unchanged:
+
+- the referenced user semantic revision
+- its direct related-semantic set and those semantic revisions
+- its recorded evidence paths and low-cost file-state versions
+- the artifact scope baseline used to discover additions
+
+Evidence versions use file type, size, modification time, and mode. Do not hash artifact contents or use Git object IDs. Audit-rule document edits do not invalidate prior results automatically.
+
+Run `audit.py plan` before auditing. Recheck only missing or stale semantics, using each target's direct related semantics as context, plus added, modified, and deleted artifact paths. Unrelated semantic changes never invalidate a completed result. A full audit is required for the first trusted baseline or when the artifact scope/mapping is unreliable.
+
+Record each semantic conclusion through the tool immediately after auditing that semantic and its small related context. Do not wait for a long audit to finish: persisted coverage is the recovery checkpoint after context compaction. Never hand-edit `audit-state.json`. Finalize only after reviewing every changed path:
+
+```bash
+python semantic-alignment/scripts/audit.py <record-dir> record-coverage \
+  --artifact-root <project-root> --semantic-id U1 --status satisfied \
+  --source user-explicit --relation implements \
+  --implementation "..." --evidence path/to/file --notes "..."
+
+python semantic-alignment/scripts/audit.py <record-dir> record-difference \
+  --artifact-root <project-root> --type added --source agent-added \
+  --relation extends \
+  --implementation "..." \
+  --user-semantics U1 --evidence path/to/file --impact low --notes "..."
+
+python semantic-alignment/scripts/audit.py <record-dir> finalize \
+  --artifact-root <project-root> --mode incremental --confirm-all-changes-reviewed
+```
+
+Pass `--relevant-compromise C1` for compromises relevant to the audited scope. Other active compromises remain stored but are not shown as reminders.
+
+### 5. Show users differences, not internal bookkeeping
+
+`alignment-report.md` is generated from current audit state and active compromises. Default user-facing delivery should summarize:
+
+- implementation additions or enhancements not explicitly requested
+- omissions, narrowing, substitutions, conflicts, or artifact drift
+- compromises whose recheck condition is relevant now
+
+Provide the complete user design semantics when the user asks for them, when establishing a baseline, or when a material ambiguity requires review.
+
+## Difference Model
+
+Classify implementation relationships independently from their source:
+
+- source: `user-explicit`, `user-inferred`, `agent-added`, `constraint-driven`
+- relationship: `implements`, `extends`, `narrows`, `substitutes`, `conflicts`
+- reported difference: `added`, `enhanced`, `omitted`, `substituted`, `narrowed`, `conflict`, `artifact-drift`
+
+A reasonable addition is still a difference. For example, adding tests or checksum verification without a user request should be reported even when it improves quality.
+
+## Recheck Compromises
+
+Evaluate active compromises when:
+
+- related user semantics or artifact paths are being changed
+- new evidence matches a recorded recheck condition
+- a relevant tool, permission, dependency, API, asset, deadline, or constraint changes
+- an audit or delivery review reaches the affected scope
+
+When a condition becomes true, tell the user the original target, accepted gap, and new evidence before continuing with the compromised route or changing it. Do not resolve a compromise only inside records.
+
+## Record Set
+
+Standard and Deep tracking keep the authoritative record set inside the project:
+
+```text
+<project-root>/.semantic-alignment/
+  project.json
+  user-semantics.md
+  semantic-ledger.jsonl
+  compromises.jsonl
+  audit-state.json
+  alignment-report.md
+```
+
+- `project.json`: tool-written stable project identity and local layout
+- `user-semantics.md`: generated complete current user baseline
+- `semantic-ledger.jsonl`: tool-written stable-ID revisions; only latest non-deleted revisions are active
+- `compromises.jsonl`: append-only compromise revisions
+- `audit-state.json`: tool-written per-semantic implementation findings, evidence, differences, and artifact snapshot
+- `alignment-report.md`: generated concise user-facing differences and active compromises
+
+Initialize and validate with:
+
+```bash
+python semantic-alignment/scripts/workspace.py init <project-root> \
+  --workspace-root <workspace-root> --project-id <stable-project-id>
+python semantic-alignment/scripts/validate_records.py <project-root>/.semantic-alignment/
+```
+
+The workspace keeps one rebuildable routing index:
+
+```text
+<workspace-root>/.semantic-alignment/projects.json
+```
+
+It contains only stable project IDs and workspace-relative project/record paths. It must not contain user semantics, compromises, differences, coverage, or audit state. Use `workspace.py list`, `resolve`, `check`, `archive-project`, and `rebuild-index`; do not hand-edit the index or project manifests. `archive-project` removes a retired project from the active index while preserving its complete record set under the project-local `.semantic-alignment-archive/`. Normal startup and default `check` read the saved index without rescanning the whole workspace. Use `check --discover` or `rebuild-index` for explicit discovery; they reject stale paths, duplicate IDs, duplicate roots, or overlapping active project roots rather than guessing ownership.
+
+Keep project records outside product artifacts. They live with the project and may be versioned with it; `.semantic-alignment` remains excluded from artifact snapshots to avoid self-invalidating audits.
+
+## Recording Levels
+
+- **None**: tiny, reversible, mechanical work, routine experiments, transient analysis, and ordinary writing with no durable product/system semantic effect.
+- **Light**: bounded, low-risk work with a durable semantic effect; retain the frame in conversation and report visible differences.
+- **Standard**: multi-step project work; persist the five-file record set and use incremental audits.
+- **Deep**: high-impact, ambiguous, long-running, or public work; establish a full baseline and use broader evidence scopes.
 
 ## Reference Loading
 
-Load only the reference needed for the current action:
+- Read `references/semantic-model.md` when deciding what counts as user semantics, implementation semantics, a difference, or a compromise.
+- Read `references/operational-workflow.md` when creating, updating, or migrating records.
+- Read `references/audit-rules.md` before incremental/full audits or compromise rechecks.
+- Read `references/semantic-record-template.md` when exact schemas or command examples are needed.
 
-- `references/semantic-model.md`: read when deciding whether a user message changes semantics, classifying categories/reasons, or writing ledger/realization entries.
-- `references/operational-workflow.md`: read when starting Standard/Deep tracking, deciding required reads, updating records, syncing triggers, or handling semantic changes during work.
-- `references/audit-rules.md`: read when the user requests/accepts an audit, when recommending an audit, before final delivery with drift signals, or when a constraint/recheck trigger may reopen a route.
-- `references/semantic-record-template.md`: read when creating records, editing table shape, or needing exact file schemas.
-
-If the needed reference is not loaded, load it before making that decision or edit.
-
-## Minimal Rules
-
-- Record user semantics, not every user utterance.
-- Keep `user-semantics.md` readable and concise; it is the user's review entry point.
-- Use `user-semantic-ledger.md` as the single action-bearing history for accepted user-baseline changes.
-- Prefer `scripts/record_event.py` for appending ledger, realization, and artifact-check rows; hand-edit only when the script cannot express the needed change.
-- Write recheck triggers as observable conditions that mean "revisit this ledger entry"; do not use them for open tasks, recommendations, or actions.
-- Evaluate active recheck triggers against new user messages, implementation discoveries, artifact checks, and audit evidence; do not treat trigger rows as passive documentation.
-- Do not create a second generic semantic-change log.
-- Do not persist unaccepted agent suggestions or limitations that have no actual effect.
-- Treat realization semantics as intended artifact semantics; the real artifact is checked, not duplicated as another semantic layer.
-- Keep realization semantics current during implementation, not only during audit. Do not let `realization-semantics.md` become a long history file; mark obsolete rows `revised`/`rejected` only while useful, and archive old non-current material when it stops helping routine reads.
-- Keep `audits.md` focused on the current summary and recent material events; archive older resolved/accepted/superseded events when the file becomes hard to scan.
-- Full audits are user-initiated or user-accepted. Proactively warn only on direct, material contradictions, divergent realization semantics, material artifact check failures, or clearly resolved stale constraints.
-- Do not audit against stale realization semantics. A full audit must first inspect the real project, update or explicitly confirm `realization-semantics.md`, and refresh or explicitly confirm `artifact-checks.md`.
-- Do not summarize a full audit in aggregate only. The latest audit event must include exhaustive user-semantic and realization-semantic coverage tables, and `scripts/check_audit_coverage.py <record-dir>` must pass before reporting the audit as complete.
-- Do not mark a stale-route trigger handled only inside records; the user-facing response must show the reminder or confirmation basis.
-- Do not claim alignment, stale-constraint resolution, or audit readiness without reading the relevant current records.
-
-## Recording Level
-
-Use the lightest level that protects alignment:
-
-- **None**: tiny, reversible, mechanical tasks.
-- **Light**: short semantic tasks; keep the semantic frame in conversation unless the task continues.
-- **Standard**: multi-step implementation/design work; create the standard record directory.
-- **Deep**: high-impact, ambiguous, long-running, or user-facing work; use full records and audits at major checkpoints.
+Do not claim current alignment when `audit.py plan` reports missing or stale coverage, stale differences, or unreviewed artifact changes.

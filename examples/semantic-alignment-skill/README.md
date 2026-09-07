@@ -1,16 +1,7 @@
-# Example: semantic-alignment-skill
+# V2 Record Example
 
 [中文说明](README.zh-CN.md)
 
-This directory contains the semantic-alignment records created while designing and building the `semantic-alignment` skill itself.
+This minimal example shows the project-local v2 record model: a `project.json` manifest, complete current user semantics, simple direct relations, retired revision history, a separate compromise, and the difference report before a trusted audit baseline exists.
 
-It shows how records can evolve during a real project:
-
-- `user-semantics.md` keeps the current user-readable semantic baseline.
-- `user-semantic-ledger.md` records accepted semantic changes with reasons and recheck triggers.
-- `realization-semantics.md` records the intended meaning of the skill files.
-- `artifact-checks.md` checks the actual skill files against that intended meaning.
-- `audits.md` records audit summaries and events.
-- `structured/` contains generated JSONL mirrors for selected records.
-
-These files are examples only. They are not required for installing or running the skill.
+After a real project's first semantic audit, `audit-state.json` stores per-semantic conclusions, direct related context, and low-cost evidence file-state versions. Record each completed conclusion through the tool; `alignment-report.md` is regenerated automatically.

@@ -1,0 +1,6 @@
+{
+  "artifact_root": ".",
+  "project_id": "semantic-alignment-skill-example",
+  "record_dir": ".semantic-alignment",
+  "schema_version": 1
+}

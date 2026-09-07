@@ -3,130 +3,85 @@ import argparse
 import sys
 from pathlib import Path
 
+from recordlib import atomic_write_json, atomic_write_text, empty_audit_state, record_lock
+
 
 FILES = {
-    "index.md": """# {title}
-
-## Current Semantic Frame
-
-### Goal
-
-TBD
-
-### Global Semantics
-
-- TBD
-
-### Local Semantics
-
-- TBD
-
-### Known Unknowns
-
-- TBD
-""",
+    "semantic-ledger.jsonl": "",
+    "compromises.jsonl": "",
     "user-semantics.md": """# User Semantics
 
-This is the current user-semantic baseline. Keep it readable for the user. Do not put history or agent rationale here.
+This is the complete current user-design baseline. It is generated from `semantic-ledger.jsonl`; edit the ledger through `scripts/record_event.py`.
 
-## Goal
-
-TBD
-
-## Principles
-
-- TBD
-
-## Context
-
-- TBD
-
-## Global Design Semantics
-
-- TBD
-
-## Local Semantics
-
-- TBD
-
-## Constraints
-
-- TBD
-
-## Review Semantics
-
-- TBD
-
-## User Review Focus
-
-- TBD
+No user semantics recorded yet.
 """,
-    "user-semantic-ledger.md": """# User Semantic Ledger
+    "alignment-report.md": """# Alignment Report
 
-This file records user semantic changes, not every user input. Use `add`, `update`, or `delete`; include the reason.
+This is the generated user-facing view. Full semantics live in `user-semantics.md`; reusable audit evidence lives in `audit-state.json`.
 
-## Ledger
+## Current Status
 
-| ID | Date | Operation | Category | Before | After | Reason | Source | Current? | Recheck trigger |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-""",
-    "recheck-triggers.md": """# Recheck Triggers
+- Overall: not-audited
+- Last audit: never
+- Validity: no trusted audit has been finalized.
+- Coverage: satisfied=0, partial=0, unmet=0, conflict=0, unknown=0
 
-This file is generated from current rows in `user-semantic-ledger.md`. Do not add or remove trigger rows by hand; edit trigger presence/text in the ledger and run `scripts/sync_triggers.py`. You may edit `Recheck method`, `Status`, `Last checked`, and `Notes`; the sync script preserves those fields for matching triggers.
+## Implementation Differences
 
-| ID | Ledger ID | Trigger | Recheck method | Status | Last checked | Notes |
-| --- | --- | --- | --- | --- | --- | --- |
-""",
-    "realization-semantics.md": """# Realization Semantics
+No current implementation differences recorded.
 
-Realization semantics are intended artifact semantics: what the agent believes the produced artifact should mean after interpreting user semantics and filling implementation/design gaps.
+## Relevant Compromises
 
-| ID | Realization semantics | Scope | Relation to user semantics | Linked user semantics | Rationale | Status |
-| --- | --- | --- | --- | --- | --- | --- |
-""",
-    "artifact-checks.md": """# Artifact Checks
-
-This is a mechanical check log comparing real artifacts with `realization-semantics.md`. Put synthesis in `audits.md`.
-
-| ID | Artifact | Checked against | Result | Concrete note |
-| --- | --- | --- | --- | --- |
-""",
-    "audits.md": """# Audits
-
-## Current Audit Summary
-
-- Overall status: TBD
-- Open drift: TBD
-- Open contradictions: TBD
-- Reopen triggers: TBD
-- Current recommendations: TBD
-
-## Audit Events
-
-No audit events recorded yet.
+No active compromises were relevant to the last audit. Active compromises retained internally: 0.
 """,
 }
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Create semantic-alignment record files with fixed headers.")
-    parser.add_argument("record_dir", help="Path to .semantic-alignment/<project-slug>/ or another writable record directory")
-    parser.add_argument("--title", default="Semantic Alignment Records", help="Title for index.md")
-    parser.add_argument("--force", action="store_true", help="Overwrite existing files")
+    parser = argparse.ArgumentParser(
+        description="Create v2 files in an already resolved project record directory."
+    )
+    parser.add_argument("record_dir", help="Path to <project-root>/.semantic-alignment/")
     args = parser.parse_args()
 
     record_dir = Path(args.record_dir)
     record_dir.mkdir(parents=True, exist_ok=True)
 
+    with record_lock(record_dir):
+        return initialize(record_dir)
+
+
+def initialize(record_dir):
+
+    legacy = [
+        name
+        for name in ("user-semantic-ledger.md", "realization-semantics.md", "artifact-checks.md", "audits.md")
+        if (record_dir / name).exists()
+    ]
+    if legacy:
+        print(
+            "legacy v1 records found; run scripts/migrate_v1.py <record-dir> --apply before initialization: "
+            + ", ".join(legacy),
+            file=sys.stderr,
+        )
+        return 1
+
     written = []
     skipped = []
-    for name, template in FILES.items():
+    for name, content in FILES.items():
         path = record_dir / name
-        if path.exists() and not args.force:
+        if path.exists():
             skipped.append(name)
             continue
-        path.write_text(template.format(title=args.title), encoding="utf-8", newline="\n")
+        atomic_write_text(path, content)
         written.append(name)
+
+    state_path = record_dir / "audit-state.json"
+    if state_path.exists():
+        skipped.append(state_path.name)
+    else:
+        atomic_write_json(state_path, empty_audit_state())
+        written.append(state_path.name)
 
     for name in written:
         print(f"written: {name}")

@@ -2,105 +2,136 @@
 
 [English README](README.md)
 
-AI agent 最大的问题，不是不会做事，而是会悄悄把事情做成另一个东西。
+AI Agent 最常见的问题不是不会实现，而是实现结果在不知不觉中偏离了用户真正想要的东西。
 
-用户说的是目标。agent 落地时会补细节、绕限制、改路线。一次两次看不出来，项目推进久了，最初为什么这样做、哪些是用户要的、哪些是 agent 自己加的、哪些只是临时妥协，就会混在一起。
+`semantic-alignment` 保存完整的用户设计语义，用真实代码或产物反推出当前实现语义，再把两者的差异直接呈现给用户。用户不需要日常阅读全部内部记录，只需要判断这些差异是否合理。
 
-`semantic-alignment` 让这些漂移保持可见。
+它只管理长期存续的产品和系统设计。一次性实验、研究运行状态、临时分析和普通写作默认不创建语义记录；只有用户明确要求，或产物本身是约束后续实现的权威规范时才纳入。实验结论被用户接受为长期决策后，只把该决策写入所属产品项目，不把实验本身登记成语义项目。
 
-它让 agent 记住用户真正要什么，记录自己实现时补了什么、改了什么、为什么，并在审计时逐条对账。用户也应在关键节点主动发起审计，及时校准语义，避免项目在推进中悄悄偏离。
+## 核心设计
 
-一句话：它让 agent 不只是完成任务，而是持续证明自己做出来的东西，仍然是用户想要的那个东西。
+新版工作流只长期维护两类无法从代码可靠恢复的信息：
 
-## 它怎么解决
+- 用户设计语义：目标、原则、全局与局部设计、约束和验收标准。
+- 妥协：原目标、实际方案、差距、原因、证据和重审条件。
 
-这个 skill 会把项目语义拆成几类稳定记录：
+实现语义不再要求 Agent 边开发边维护一份手写副本，而是在审计时从真实产物中提取。
 
-- `user-semantics.md`：用户当前真正想要什么
-- `user-semantic-ledger.md`：语义从什么变成什么，以及为什么变
-- `recheck-triggers.md`：什么可观察条件出现时，旧决定需要重新检查
-- `realization-semantics.md`：agent 理解用户后，打算在产物中实现什么
-- `artifact-checks.md`：真实代码、设计或文档是否符合这些实现语义
-- `audits.md`：跨这些层的对齐判断
+审计结果按以下条件缓存：
 
-关键点是：用户语义、agent 补出来的实现语义、真实产物，不会被混成一件事。
+```text
+用户语义修订版 + 直接相关语义及版本 + 证据范围与文件状态版本 + 已审查的产物快照
+```
 
-## 它审计什么
+每条语义可以维护一个简单、无类型、只展开一层的 `related` 集合。审计以单条用户语义为入口，同时查看直接相关的少量语义。只要这些条件没有变化，旧结论就可以复用；无关语义的变化不会使其失效。
 
-审计时，这个 skill 会推动 agent 回答具体问题，而不是写一段笼统总结：
+每审完一条语义及其直接相关上下文，Agent 立即调用工具保存结论，不等待整个审计结束。这样即使任务中断或上下文被压缩，也能从持久化状态继续。
 
-- 哪些用户语义已经满足、部分满足、未满足、未知或冲突？
-- 哪些实现细节是用户直接要求的？
-- 哪些细节是 agent 补充的，但仍然服务于用户语义？
-- 哪些补充有风险，或已经和用户语义冲突？
-- 真实产物是否符合 agent 以为自己实现的语义？
-- 旧限制是否已经消失，导致过去的临时妥协需要调整？
+## 用户会看到什么
 
-例如，当初因为无法导出文件，所以采用复制到剪贴板；如果现在文件导出可用了，trigger 应提醒 agent 重新检查旧路线。agent 如果增加了自动保存、快捷键、导航结构或公开文案，审计时也应该判断这些补充是合理细节，还是语义漂移。
+默认报告只展示有判断价值的内容：
 
-## Trigger 怎么工作
+- Agent 新增或增强了什么；
+- 哪些用户要求被遗漏、替换、收窄或冲突；
+- 实际产物是否发生漂移；
+- 哪些历史妥协现在可能需要重新考虑。
 
-recheck trigger 不是任务，也不是建议。它是一个可观察条件，意思是：“重新读取对应的 ledger 记录，判断旧语义决定是否还成立。”
+例如，用户没有要求测试、重试或校验，而实现中增加了这些行为，它们即使合理，也会作为差异显示。
 
-agent 会在加载语义框架时读取紧凑的 trigger 投影；在重要规划或交付前、用户提到限制条件变化时、真实产物暴露新证据时、以及审计时，也要对照 trigger。若某个 trigger 看起来已经成真，agent 必须读取对应 ledger，说明旧路线和当前成真的条件，并在继续旧路线或修改基线前，把这个提醒明确告诉用户。
+## 记录结构
 
-## 工作方式
+每个项目在自身目录内保存唯一权威记录：
 
-在重要任务开始前，agent 会先读取当前语义框架，再进行规划或修改。
+```text
+<project-root>/.semantic-alignment/
+  project.json
+  user-semantics.md
+  semantic-ledger.jsonl
+  compromises.jsonl
+  audit-state.json
+  alignment-report.md
+```
 
-这个 skill 将对齐检查分成三层：
+- `project.json`：稳定项目 ID 和项目内记录布局。
+- `user-semantics.md`：完整、当前、可供用户阅读的设计语义。
+- `semantic-ledger.jsonl`：具有稳定 ID 和修订号的用户语义历史。
+- `compromises.jsonl`：独立保存的妥协及重审条件。
+- `audit-state.json`：实现语义、低成本证据版本、覆盖状态和产物快照。
+- `alignment-report.md`：面向用户的当前差异与妥协摘要。
 
-1. **用户语义**：用户当前想要什么。
-2. **实现语义**：agent 理解用户后，打算在产物中实现什么。
-3. **产物检查**：真实代码、设计、文档或输出是否符合这些实现语义。
+用户语义、妥协和审计结论都必须通过脚本记录。两个 Markdown 文件由脚本生成，Agent 不直接手写 JSONL、审计状态或生成视图。
 
-当语义发生重要变化时，agent 会记录这是新增、更新还是删除，并记录原因。如果变化由限制条件导致，还可以留下后续重新检查的 trigger。
+多项目 Workspace 只额外保存一份路由索引：
 
-完整审计由用户发起或确认。审计前，agent 应先检查真实项目，刷新或确认实现语义，再刷新或确认产物检查。完整审计应覆盖每条当前用户语义和每条 active 实现语义。
+```text
+<workspace-root>/.semantic-alignment/projects.json
+```
+
+索引只包含稳定项目 ID 和相对路径，由项目内 `project.json` 重建，不复制语义、妥协、差异或审计覆盖。`related` 只能关联同一项目内的语义；真正跨项目的共同语义应归属于单独注册的共同上层项目。
+
+## 增量审计
+
+```bash
+python semantic-alignment/scripts/audit.py <record-dir> plan --artifact-root <project-root>
+```
+
+该命令会列出：
+
+- 新增、修改和删除的产物文件；
+- 尚未覆盖的用户语义；
+- 因用户语义或证据变化而失效的旧结论；
+- 每个待审计语义的直接相关语义；
+- 证据已经变化的实现差异；
+- 建议使用增量审计还是完整审计。
+
+Agent 对着待审计用户语义检查真实产物，并在每个小组完成后立即记录覆盖结论；全部必要语义和变化产物处理完后，再提交新的可信快照。
+
+## 妥协提醒
+
+妥协不能依赖代码审计恢复，因为相同代码可能来自完全不同的原因。因此妥协在决策发生时记录，并只在以下情况提醒：
+
+- 当前工作涉及它影响的语义或范围；
+- 新证据符合其重审条件；
+- 相关工具、权限、依赖、资源或约束发生变化。
+
+## 初始化与迁移
+
+初始化并注册项目内记录：
+
+```bash
+python semantic-alignment/scripts/workspace.py init <project-root> \
+  --workspace-root <workspace-root> --project-id <stable-project-id>
+```
+
+列出、定位、检查或重建 Workspace 索引：
+
+```bash
+python semantic-alignment/scripts/workspace.py list --workspace-root <workspace-root>
+python semantic-alignment/scripts/workspace.py resolve <artifact-path> --workspace-root <workspace-root>
+python semantic-alignment/scripts/workspace.py check --workspace-root <workspace-root>
+python semantic-alignment/scripts/workspace.py check --workspace-root <workspace-root> --discover
+python semantic-alignment/scripts/workspace.py archive-project <project-id> --workspace-root <workspace-root>
+python semantic-alignment/scripts/workspace.py rebuild-index --workspace-root <workspace-root>
+```
+
+默认 `check` 只验证已保存索引，不重新扫描 Workspace；只有需要查找未登记项目记录时才使用 `--discover`。
+
+旧的 Workspace 集中记录或同一项目下的多套旧记录，可使用 `scripts/migrate_v1.py <旧记录目录> --into <项目根>/.semantic-alignment --source-label <标签>` 合并到项目本地记录。先预览，再添加 `--apply`；已经确认由 canonical 记录取代的旧镜像可用 `--archive-only` 仅归档。
+
+旧版记录先预览迁移：
+
+```bash
+python semantic-alignment/scripts/migrate_v1.py <record-dir>
+```
+
+确认后执行：
+
+```bash
+python semantic-alignment/scripts/migrate_v1.py <record-dir> --apply
+```
+
+旧文件会被保存在 `archive/legacy-v1-*`。旧审计因为缺少完整证据范围和文件状态版本，不会被冒充成可复用的新审计缓存；迁移后需要做一次基线完整审计。
 
 ## 安装
 
-将本仓库作为名为 `semantic-alignment` 的 skill 安装到 Codex 或兼容的 agent 环境中。
-
-skill 根目录结构：
-
-```text
-semantic-alignment/
-  SKILL.md
-  references/
-  scripts/
-  agents/
-```
-
-安装后，在需要长期保持意图一致的项目、设计、实现或写作任务中，让 agent 使用 `semantic-alignment`。
-
-## 记录放在哪里
-
-默认记录目录：
-
-```text
-.semantic-alignment/<project-slug>/
-```
-
-这个目录可以放在项目根目录，也可以放在 workspace 根目录。若一个 workspace 中有多个 project，每个 project 应使用独立的 slug。project slug 是稳定的小写 kebab-case 项目标识，通常来自仓库根目录名、包/项目名或项目目录名。
-
-主要文件包括：
-
-- `user-semantics.md`：给用户查看的当前语义基线
-- `user-semantic-ledger.md`：已接受的语义变化和原因
-- `recheck-triggers.md`：需要重新检查旧决定的条件
-- `realization-semantics.md`：agent 打算实现到产物中的语义
-- `artifact-checks.md`：真实产物和实现语义之间的检查
-- `audits.md`：对齐、漂移、冲突和建议
-
-这些记录属于项目过程元数据，不是产品本身。
-
-## 示例
-
-`examples/semantic-alignment-skill/` 包含这个 skill 在开发过程中的语义记录。
-
-这些文件仅作为示例，用来展示真实项目中语义记录如何演化。安装或运行 skill 不依赖它们。
-
-## 当前状态
-
-这个 skill 目前按 Codex skill 的形式打包，但记录模型本身尽量保持平台无关。
+将本仓库安装为名为 `semantic-alignment` 的 Codex 或兼容 Agent Skill。记录模型本身不依赖特定 Agent 平台。
