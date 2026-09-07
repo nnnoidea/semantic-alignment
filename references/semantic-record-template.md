@@ -142,6 +142,8 @@ This is the current machine-owned audit cache, not an append-only history file.
       "source": "user-explicit",
       "relation": "implements",
       "implementation": "The artifact preserves the complete baseline.",
+      "assertion_type": "obligation",
+      "counterexample_review": "Checked routing, modes, exceptions, fallbacks, and early exits; no path bypasses the requirement.",
       "evidence": [
         {"path": "src/app.py", "kind": "file", "version": "stat:file:0o644:1200:1788750000000000000"}
       ],
@@ -182,6 +184,14 @@ This is the current machine-owned audit cache, not an append-only history file.
 Coverage status:
 
 - `satisfied`, `partial`, `unmet`, `conflict`, `unknown`
+
+Assertion type:
+
+- `capability`: positive implementation evidence is sufficient
+- `obligation`: every applicable path must produce the required result
+- `prohibition`: no applicable path may produce the forbidden result
+
+Current `record-coverage` writes `assertion_type` for every refreshed entry. Every satisfied entry also requires a non-empty `counterexample_review`; capability entries may explain that no universal constraint applies. Legacy cached entries may omit these fields until their normal semantic or artifact invalidation; once refreshed, the current tool requirements apply.
 
 Implementation source:
 

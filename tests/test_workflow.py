@@ -72,6 +72,10 @@ class WorkflowTest(unittest.TestCase):
             "U1",
             "--status",
             "satisfied",
+            "--assertion-type",
+            "capability",
+            "--counterexample-review",
+            "Checked the only feature entry path; no universal constraint applies.",
             "--source",
             "user-explicit",
             "--relation",
@@ -112,6 +116,10 @@ class WorkflowTest(unittest.TestCase):
             "U1",
             "--status",
             "satisfied",
+            "--assertion-type",
+            "capability",
+            "--counterexample-review",
+            "Checked the only feature entry path; no universal constraint applies.",
             "--source",
             "user-explicit",
             "--relation",
@@ -125,6 +133,119 @@ class WorkflowTest(unittest.TestCase):
         self.assertNotIn("audit_policy_revision", state["coverage"]["U1"])
         version = state["coverage"]["U1"]["evidence"][0]["version"]
         self.assertTrue(version.startswith("stat:file:"), version)
+
+    def test_satisfied_coverage_requires_counterexample_review(self):
+        rejected = run_script(
+            "audit.py",
+            self.records,
+            "record-coverage",
+            "--artifact-root",
+            self.project,
+            "--semantic-id",
+            "U1",
+            "--status",
+            "satisfied",
+            "--assertion-type",
+            "capability",
+            "--source",
+            "user-explicit",
+            "--relation",
+            "implements",
+            "--implementation",
+            "feature.txt enables the feature.",
+            "--evidence",
+            "feature.txt",
+            check=False,
+        )
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertIn("requires --counterexample-review", rejected.stderr)
+
+        run_script(
+            "audit.py",
+            self.records,
+            "record-coverage",
+            "--artifact-root",
+            self.project,
+            "--semantic-id",
+            "U1",
+            "--status",
+            "satisfied",
+            "--assertion-type",
+            "obligation",
+            "--counterexample-review",
+            "Checked all applicable modes, exceptions, fallbacks, and early exits.",
+            "--source",
+            "user-explicit",
+            "--relation",
+            "implements",
+            "--implementation",
+            "feature.txt enables the feature.",
+            "--evidence",
+            "feature.txt",
+        )
+        state = json.loads((self.records / "audit-state.json").read_text(encoding="utf-8"))
+        self.assertEqual("obligation", state["coverage"]["U1"]["assertion_type"])
+        self.assertIn("fallbacks", state["coverage"]["U1"]["counterexample_review"])
+
+        state_path = self.records / "audit-state.json"
+        state["coverage"]["U1"]["assertion_type"] = "capability"
+        state["coverage"]["U1"]["counterexample_review"] = ""
+        state_path.write_text(json.dumps(state) + "\n", encoding="utf-8")
+
+        invalid = run_script("validate_records.py", self.records, check=False)
+        self.assertNotEqual(0, invalid.returncode)
+        self.assertIn("requires non-empty counterexample_review", invalid.stderr)
+        plan = json.loads(
+            run_script("audit.py", self.records, "plan", "--artifact-root", self.project, "--json").stdout
+        )
+        self.assertIn("missing-counterexample-review", plan["coverage"]["stale"]["U1"])
+
+    def test_legacy_coverage_is_not_invalidated_only_by_new_audit_fields(self):
+        run_script(
+            "audit.py",
+            self.records,
+            "record-coverage",
+            "--artifact-root",
+            self.project,
+            "--semantic-id",
+            "U1",
+            "--status",
+            "satisfied",
+            "--assertion-type",
+            "capability",
+            "--counterexample-review",
+            "Checked the only feature entry path; no universal constraint applies.",
+            "--source",
+            "user-explicit",
+            "--relation",
+            "implements",
+            "--implementation",
+            "feature.txt enables the feature.",
+            "--evidence",
+            "feature.txt",
+        )
+        run_script(
+            "audit.py",
+            self.records,
+            "finalize",
+            "--artifact-root",
+            self.project,
+            "--mode",
+            "full",
+            "--confirm-all-changes-reviewed",
+        )
+
+        state_path = self.records / "audit-state.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        del state["coverage"]["U1"]["assertion_type"]
+        del state["coverage"]["U1"]["counterexample_review"]
+        state_path.write_text(json.dumps(state) + "\n", encoding="utf-8")
+
+        plan = json.loads(
+            run_script("audit.py", self.records, "plan", "--artifact-root", self.project, "--json").stdout
+        )
+        self.assertEqual(["U1"], plan["coverage"]["valid"])
+        run_script("validate_records.py", self.records)
 
     def test_explicit_scope_can_include_gitignored_artifacts(self):
         subprocess.run(["git", "init", "-q", str(self.project)], check=True)
@@ -164,6 +285,10 @@ class WorkflowTest(unittest.TestCase):
             "U1",
             "--status",
             "satisfied",
+            "--assertion-type",
+            "capability",
+            "--counterexample-review",
+            "Checked the only feature entry path; no universal constraint applies.",
             "--source",
             "user-explicit",
             "--relation",
@@ -278,6 +403,10 @@ class WorkflowTest(unittest.TestCase):
                 semantic_id,
                 "--status",
                 "satisfied",
+                "--assertion-type",
+                "capability",
+                "--counterexample-review",
+                "Checked the only feature entry path; no universal constraint applies.",
                 "--source",
                 "user-explicit",
                 "--relation",
@@ -438,6 +567,10 @@ class WorkflowTest(unittest.TestCase):
             "U1",
             "--status",
             "satisfied",
+            "--assertion-type",
+            "capability",
+            "--counterexample-review",
+            "Checked the only feature entry path; no universal constraint applies.",
             "--source",
             "user-explicit",
             "--relation",
@@ -531,6 +664,8 @@ class WorkflowTest(unittest.TestCase):
             "U1",
             "--status",
             "partial",
+            "--assertion-type",
+            "obligation",
             "--source",
             "user-explicit",
             "--relation",
@@ -647,6 +782,10 @@ class WorkflowTest(unittest.TestCase):
             "U1",
             "--status",
             "satisfied",
+            "--assertion-type",
+            "capability",
+            "--counterexample-review",
+            "Checked the only feature entry path; no universal constraint applies.",
             "--source",
             "user-explicit",
             "--relation",
@@ -993,6 +1132,39 @@ class WorkspaceIndexTest(unittest.TestCase):
             self.workspace,
         )
         self.assertEqual(str(records), resolved.stdout.strip())
+        run_script("workspace.py", "check", "--workspace-root", self.workspace)
+
+    def test_init_supports_workspace_root_as_project_root_without_self_deadlock(self):
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(SCRIPTS / "workspace.py"),
+                "init",
+                str(self.workspace),
+                "--workspace-root",
+                str(self.workspace),
+                "--project-id",
+                "workspace-project",
+            ],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=5,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+
+        records = self.workspace / ".semantic-alignment"
+        index = json.loads((records / "projects.json").read_text(encoding="utf-8"))
+        self.assertEqual(
+            {
+                "project_id": "workspace-project",
+                "root": ".",
+                "record_dir": ".semantic-alignment",
+            },
+            index["projects"][0],
+        )
+        self.assertTrue((records / "project.json").exists())
         run_script("workspace.py", "check", "--workspace-root", self.workspace)
 
     def test_resolve_interprets_relative_paths_from_the_callers_working_directory(self):

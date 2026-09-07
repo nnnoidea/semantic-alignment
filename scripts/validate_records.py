@@ -8,6 +8,7 @@ from pathlib import Path
 from recordlib import (
     COMPROMISE_STATUSES,
     COVERAGE_STATUSES,
+    ASSERTION_TYPES,
     DIFFERENCE_IMPACTS,
     DIFFERENCE_STATUSES,
     DIFFERENCE_TYPES,
@@ -229,6 +230,17 @@ def validate_audit_state(record_dir):
             errors.append(f"{label}: invalid status: {item.get('status')!r}")
         if item.get("relation") not in RELATIONS:
             errors.append(f"{label}: invalid relation: {item.get('relation')!r}")
+        assertion_type = item.get("assertion_type")
+        if assertion_type is not None and assertion_type not in ASSERTION_TYPES:
+            errors.append(f"{label}: invalid assertion_type: {assertion_type!r}")
+        counterexample_review = item.get("counterexample_review")
+        if counterexample_review is not None and not isinstance(counterexample_review, str):
+            errors.append(f"{label}: counterexample_review must be a string")
+        if assertion_type is not None and item.get("status") == "satisfied":
+            if not isinstance(counterexample_review, str) or not counterexample_review.strip():
+                errors.append(
+                    f"{label}: satisfied coverage requires non-empty counterexample_review"
+                )
         if item.get("source") not in IMPLEMENTATION_SOURCES:
             errors.append(f"{label}: invalid source: {item.get('source')!r}")
         related_semantics = item.get("related_semantics", {})

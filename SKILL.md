@@ -47,7 +47,7 @@ python semantic-alignment/scripts/workspace.py resolve <artifact-path> \
    - `user-semantics.md`
    - active entries in `compromises.jsonl`
    - `alignment-report.md`
-6. Choose the lightest recording level that protects alignment.
+6. If the user states or accepts durable product/system meaning, persist it through the recording tool before relying on it. Task size and risk do not make conversation-only memory sufficient.
 7. Before meaningful artifact work, run an incremental audit plan when a trusted baseline exists:
 
 ```bash
@@ -94,8 +94,11 @@ Every audit must do both:
 
 - check affected user semantics against artifact evidence
 - inspect every new or changed artifact scope for implementation behavior the user did not request
+- inspect the applicable control points, modes, exceptions, fallbacks, and early exits for paths that can bypass a requirement
 
 This second pass prevents an audit from missing additions merely because no existing user semantic points to them.
+
+For obligations, prohibitions, invariants, and other "must" or "must not" semantics, positive evidence is insufficient. Every `satisfied` conclusion must state what counterexample paths were checked; for capabilities this may be a concise statement that no universal constraint applies. If a relevant bypass path is unreviewed, use `partial` or `unknown`. Direct `related` semantics provide context only; derive the complete impact set from the artifact control point rather than treating `related` as an audit boundary.
 
 ### 4. Reuse only valid audit results
 
@@ -108,13 +111,15 @@ An audit result is reusable only while all of these remain unchanged:
 
 Evidence versions use file type, size, modification time, and mode. Do not hash artifact contents or use Git object IDs. Audit-rule document edits do not invalidate prior results automatically.
 
-Run `audit.py plan` before auditing. Recheck only missing or stale semantics, using each target's direct related semantics as context, plus added, modified, and deleted artifact paths. Unrelated semantic changes never invalidate a completed result. A full audit is required for the first trusted baseline or when the artifact scope/mapping is unreliable.
+Run `audit.py plan` before auditing. Recheck only missing or stale semantics, using each target's direct related semantics as context, plus added, modified, and deleted artifact paths. Unrelated semantic changes never invalidate a completed result. A full audit is technically required for the first trusted baseline or when the artifact scope/mapping is unreliable; tell the user and obtain their request or acceptance before performing it.
 
 Record each semantic conclusion through the tool immediately after auditing that semantic and its small related context. Do not wait for a long audit to finish: persisted coverage is the recovery checkpoint after context compaction. Never hand-edit `audit-state.json`. Finalize only after reviewing every changed path:
 
 ```bash
 python semantic-alignment/scripts/audit.py <record-dir> record-coverage \
   --artifact-root <project-root> --semantic-id U1 --status satisfied \
+  --assertion-type obligation \
+  --counterexample-review "Checked modes, exceptions, fallbacks, and early exits; none bypass persistence." \
   --source user-explicit --relation implements \
   --implementation "..." --evidence path/to/file --notes "..."
 
@@ -163,7 +168,7 @@ When a condition becomes true, tell the user the original target, accepted gap, 
 
 ## Record Set
 
-Standard and Deep tracking keep the authoritative record set inside the project:
+Every project in scope keeps the authoritative record set inside the project:
 
 ```text
 <project-root>/.semantic-alignment/
@@ -200,12 +205,14 @@ It contains only stable project IDs and workspace-relative project/record paths.
 
 Keep project records outside product artifacts. They live with the project and may be versioned with it; `.semantic-alignment` remains excluded from artifact snapshots to avoid self-invalidating audits.
 
-## Recording Levels
+## Persistence And Audit Depth
 
-- **None**: tiny, reversible, mechanical work, routine experiments, transient analysis, and ordinary writing with no durable product/system semantic effect.
-- **Light**: bounded, low-risk work with a durable semantic effect; retain the frame in conversation and report visible differences.
-- **Standard**: multi-step project work; persist the five-file record set and use incremental audits.
-- **Deep**: high-impact, ambiguous, long-running, or public work; establish a full baseline and use broader evidence scopes.
+- **Out of scope**: work with no durable product/system semantic effect creates no semantic record.
+- **In scope**: every user-stated or user-accepted durable semantic and every material compromise is persisted through the tools, even for a small or low-risk change.
+- **Incremental audit**: reuse valid per-semantic results and inspect only invalidated semantics plus changed artifact paths.
+- **Full audit**: after the user requests or accepts it, establish or repair a baseline when no trusted snapshot exists or evidence mapping is incomplete.
+
+Audit depth may vary. Persistence of accepted durable meaning may not be downgraded to conversation-only memory.
 
 ## Reference Loading
 

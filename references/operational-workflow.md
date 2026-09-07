@@ -90,6 +90,8 @@ python semantic-alignment/scripts/workspace.py init <project-root> \
 
 The initializer writes the project-local record set and `project.json`, then updates the workspace index atomically under locks. It refuses conflicts and does not overwrite v1 records. Migrate existing records instead of silently replacing them.
 
+The project root may be the workspace root. In that layout the index directory and project record directory are the same path; locking is reentrant for that same normalized path. Initialize the real project directly. Do not copy records or the installed skill to a temporary location to bypass locking or ownership checks.
+
 ## Load A Project
 
 For an existing v2 project:
@@ -99,6 +101,8 @@ For an existing v2 project:
 3. Read current active compromise revisions from `compromises.jsonl`.
 4. Read `alignment-report.md`.
 5. Run `audit.py plan` before meaningful implementation or delivery when artifact state may have changed.
+
+Once a durable user semantic is stated or accepted for an in-scope project, record it immediately through `record_event.py`. Small scope or low risk may reduce later audit breadth, but it never permits keeping accepted durable semantics only in conversation.
 
 Read the full ledgers only when changing a semantic, revising a compromise, resolving historical ambiguity, or auditing history.
 
@@ -194,6 +198,8 @@ python semantic-alignment/scripts/audit.py <record-dir> record-coverage \
   --artifact-root <project-root> \
   --semantic-id U3 \
   --status satisfied \
+  --assertion-type obligation \
+  --counterexample-review "Checked applicable modes, exceptions, fallbacks, and early exits." \
   --source user-explicit \
   --relation implements \
   --implementation "The artifact ..." \
@@ -202,6 +208,8 @@ python semantic-alignment/scripts/audit.py <record-dir> record-coverage \
 ```
 
 Evidence may be a file or directory. The script records a low-cost version from file type, size, modification time, and mode; it does not hash contents or use Git object IDs. Use the narrowest complete evidence scope; overly broad directories cause unnecessary invalidation, while incomplete scopes can incorrectly reuse stale conclusions.
+
+Set `--assertion-type` to `capability`, `obligation`, or `prohibition`. Every satisfied conclusion requires a non-empty `--counterexample-review`; obligations and prohibitions describe the inspected applicability boundary and bypass paths, while a pure capability may state why no universal constraint applies. Requiring the field for every satisfied entry prevents assertion-type misclassification from bypassing the gate.
 
 Record each semantic as soon as it and its directly related context have been audited. Do not defer all writes until the end of a long audit: `record-coverage` is the durable checkpoint used to resume after interruption or context compaction.
 
@@ -249,7 +257,7 @@ Apply only after reviewing the plan:
 python semantic-alignment/scripts/migrate_v1.py <record-dir> --apply
 ```
 
-Migration archives v1 files, converts current user semantics, and conservatively preserves active recheck conditions as unverified compromises. It does not trust old audit conclusions as v2 cache entries; one baseline full audit is required.
+Migration archives v1 files, converts current user semantics, and conservatively preserves active recheck conditions as unverified compromises. It does not trust old audit conclusions as v2 cache entries; a baseline full audit is required before alignment can be claimed, and the user must request or accept that audit first.
 
 When several legacy record directories belong to one project, initialize the project-local v2 record set and merge each source through the migration tool:
 

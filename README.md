@@ -15,6 +15,8 @@ The workflow persistently authors only information that cannot be recovered reli
 - user design semantics: goals, principles, global/local design, constraints, and acceptance criteria
 - compromises: original target, actual choice, gap, reason, evidence, and recheck condition
 
+If a user states or accepts durable product/system meaning, it is persisted even when the change is small or low-risk. There is no conversation-only mode for durable semantics; lightness comes from incremental audit reuse, not from dropping the record.
+
 Implementation semantics are not maintained as a second hand-written specification during development. They are derived by auditing the actual code, design, document, configuration, tests, or output.
 
 Audit results are cached against:
@@ -26,6 +28,8 @@ user semantic revision + direct related semantics and revisions + evidence scope
 Each semantic can retain a small, untyped, one-level `related` set. A semantic audit starts from one user semantic and loads only its direct related context. Unchanged results are reused, and unrelated semantic changes do not invalidate them.
 
 After auditing a semantic and its small related context, the agent records the conclusion immediately through the tool instead of waiting for the entire audit. Persisted per-semantic coverage makes interrupted or compacted work resumable.
+
+For requirements expressed as obligations or prohibitions, an audit must also inspect routing, modes, exceptions, fallbacks, and early exits. A working main path proves capability, not that every applicable path preserves the user's meaning.
 
 ## What Users See
 
@@ -112,7 +116,7 @@ python semantic-alignment/scripts/migrate_v1.py <record-dir>
 python semantic-alignment/scripts/migrate_v1.py <record-dir> --apply
 ```
 
-Migration archives legacy files. Old audit conclusions are not treated as reusable cache entries because their evidence scope and file-state versions are incomplete, so one baseline full audit is required.
+Migration archives legacy files. Old audit conclusions are not treated as reusable cache entries because their evidence scope and file-state versions are incomplete, so a baseline full audit is required before alignment can be claimed; the user must request or accept that audit first.
 
 ## Installation
 

@@ -7,6 +7,7 @@ from pathlib import Path
 
 from recordlib import (
     COVERAGE_STATUSES,
+    ASSERTION_TYPES,
     DIFFERENCE_IMPACTS,
     DIFFERENCE_STATUSES,
     DIFFERENCE_TYPES,
@@ -88,6 +89,13 @@ def make_plan(record_dir, artifact_root, scopes):
             reasons.append("user-semantic-changed")
         if coverage.get("related_semantics", {}) != related_revisions[semantic_id]:
             reasons.append("related-semantics-changed")
+        assertion_type = coverage.get("assertion_type")
+        if (
+            coverage.get("status") == "satisfied"
+            and assertion_type in ASSERTION_TYPES
+            and not str(coverage.get("counterexample_review", "")).strip()
+        ):
+            reasons.append("missing-counterexample-review")
         changed_evidence = stale_evidence(artifact_root, coverage.get("evidence", []))
         if changed_evidence:
             reasons.append("evidence-changed:" + ",".join(changed_evidence))
@@ -193,6 +201,8 @@ def record_coverage(args, record_dir, artifact_root):
         missing = [item["path"] for item in evidence if item["kind"] == "missing"]
         raise ValueError("evidence path does not exist: " + ", ".join(missing))
     event = semantics[args.semantic_id]
+    if args.status == "satisfied" and not args.counterexample_review.strip():
+        raise ValueError("satisfied coverage requires --counterexample-review")
     state = load_audit_state(record_dir)
     state.setdefault("coverage", {})[args.semantic_id] = {
         "semantic_revision": semantic_revision(event),
@@ -201,6 +211,8 @@ def record_coverage(args, record_dir, artifact_root):
         "relation": args.relation,
         "source": args.source,
         "implementation": args.implementation,
+        "assertion_type": args.assertion_type,
+        "counterexample_review": args.counterexample_review,
         "evidence": evidence,
         "notes": args.notes,
         "audited_at": utc_now(),
@@ -348,6 +360,10 @@ def main():
     coverage_parser.add_argument("--relation", choices=sorted(RELATIONS), required=True)
     coverage_parser.add_argument("--source", choices=sorted(IMPLEMENTATION_SOURCES), required=True)
     coverage_parser.add_argument("--implementation", required=True)
+    coverage_parser.add_argument(
+        "--assertion-type", choices=sorted(ASSERTION_TYPES), required=True
+    )
+    coverage_parser.add_argument("--counterexample-review", default="")
     coverage_parser.add_argument("--evidence", action="append", required=True)
     coverage_parser.add_argument("--notes", default="")
 

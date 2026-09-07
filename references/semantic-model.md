@@ -81,9 +81,11 @@ Each current user semantic has one current coverage entry containing:
 - the user semantic revision number
 - its direct related-semantic IDs and revision numbers
 - coverage status: `satisfied`, `partial`, `unmet`, `conflict`, or `unknown`
+- assertion type: `capability`, `obligation`, or `prohibition`
 - artifact-derived implementation semantics
 - source and relationship classifications
 - concrete evidence paths and low-cost file-state versions
+- counterexample-path review for every satisfied entry, including applicability and bypass details for obligations and prohibitions
 - a concise note and audit time
 
 The audit cache is not trusted merely because an entry exists. It is valid only while the semantic revision, direct related context, and every evidence file-state version still match. These versions use type, size, modification time, and mode; they do not hash content or use Git object IDs. Audit-rule document edits do not automatically invalidate prior results. Unrelated semantic changes do not invalidate them either.
@@ -98,6 +100,8 @@ Auditing only known user semantics is insufficient because it cannot discover un
 2. `ΔA → I`: inspect every added, modified, or deleted artifact path for new implementation semantics and differences.
 
 The artifact snapshot is the completeness guard for the second direction.
+
+Artifact-to-semantics discovery must follow control points, not only ledger links. A mode selector, router, exception, fallback, or early return may affect several user semantics at once. `related` helps load nearby design context but never limits which semantics an implementation branch can violate.
 
 ## Project Ownership
 

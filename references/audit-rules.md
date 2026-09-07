@@ -56,7 +56,9 @@ A full audit is required when:
 - the configured artifact scope changed and prior coverage cannot be related safely
 - evidence mappings are missing or known to be incomplete
 
-A full audit is normally preferable when the user requests it, audit rules invalidate all prior judgments, or a structural change makes existing evidence mappings unreliable. A goal or global semantic change does not by itself invalidate unrelated semantics.
+"Required" describes what is necessary to establish a trustworthy baseline; it does not authorize the Agent to start a full audit. The user must request or accept the full audit first. Until then, report that a trusted baseline cannot be claimed and continue only with work that does not depend on that claim.
+
+A full audit is normally preferable when the user requests it, or when a structural change makes existing evidence mappings unreliable and the user accepts the audit. A goal or global semantic change does not by itself invalidate unrelated semantics.
 
 Full does not mean writing an execution log. It means covering every current user semantic and inspecting the complete configured artifact scope for additions.
 
@@ -78,11 +80,32 @@ Inspect all changed paths even when no user semantic currently references them. 
 
 This pass is mandatory. Without it, tests, checksums, retries, telemetry, public copy, permission changes, or other agent additions can remain invisible.
 
+## Assertion Shape And Counterexample Paths
+
+Classify the semantic before judging coverage:
+
+- an existential capability ("support X") needs concrete positive evidence
+- an obligation or invariant ("when X, always Y" or "must Y") needs positive evidence plus review of every applicable control path
+- a prohibition ("must not X") needs an active search for paths that can produce X
+
+For obligations, invariants, and prohibitions, inspect the complete behavioral chain:
+
+```text
+applicability/trigger -> routing or mode choice -> exceptions and fallbacks -> execution -> persisted or observable result
+```
+
+Search configuration, modes, optional branches, feature flags, fallbacks, early returns, and documented alternative workflows for counterexamples. A helper or successful main path proves only capability; it does not prove that callers cannot bypass the requirement. If the relevant control points or bypass paths are unknown or unreviewed, record `partial` or `unknown`, not `satisfied`.
+
+Every `satisfied` coverage entry must state the counterexample review performed. For a pure capability, this may briefly state that no universal or prohibitive claim applies and identify the relevant entry paths checked. This universal write requirement prevents an incorrectly chosen assertion type from becoming a bypass around the audit gate.
+
+The semantic's direct `related` set is context, not an implementation-impact boundary. When one artifact control point affects additional user semantics, audit and invalidate those semantics even if they are not directly related in the ledger.
+
 ## Evidence Scope
 
 Use the narrowest scope that completely proves the conclusion:
 
 - implementation file plus relevant configuration
+- routing, policy, mode-selection, or caller files that determine whether the implementation is invoked
 - component directory when behavior is distributed
 - generated artifact when source alone does not prove the output
 - tests only as supporting evidence, not as proof that production behavior exists
@@ -123,6 +146,7 @@ An audit may be finalized when:
 - every current user semantic has current coverage
 - no cached difference has stale evidence
 - every changed artifact path has been inspected
+- every satisfied obligation, invariant, or prohibition has had its applicable bypass paths checked
 - affected compromises were evaluated
 - unknowns and unresolved differences are reported rather than hidden
 

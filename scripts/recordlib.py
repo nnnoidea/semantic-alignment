@@ -8,6 +8,7 @@ import json
 import os
 import subprocess
 import tempfile
+import threading
 from collections import defaultdict
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -58,6 +59,7 @@ SEMANTIC_REASONS = {
 
 COMPROMISE_STATUSES = {"active", "resolved", "superseded"}
 COVERAGE_STATUSES = {"satisfied", "partial", "unmet", "conflict", "unknown"}
+ASSERTION_TYPES = {"capability", "obligation", "prohibition"}
 RELATIONS = {"implements", "extends", "narrows", "substitutes", "conflicts", "none", "unknown"}
 IMPLEMENTATION_SOURCES = {"user-explicit", "user-inferred", "agent-added", "constraint-driven", "unknown"}
 DIFFERENCE_TYPES = {"added", "enhanced", "omitted", "substituted", "narrowed", "conflict", "artifact-drift"}
@@ -65,6 +67,8 @@ DIFFERENCE_IMPACTS = {"low", "medium", "high"}
 DIFFERENCE_STATUSES = {"open", "accepted", "resolved"}
 
 DEFAULT_IGNORED_PARTS = {".git", ".semantic-alignment", "__pycache__", ".pytest_cache", ".mypy_cache"}
+
+_RECORD_LOCK_STATE = threading.local()
 
 
 def utc_now():
@@ -81,10 +85,22 @@ def digest_text(value):
 
 @contextmanager
 def record_lock(record_dir):
-    """Serialize complete read-modify-write transactions for one record set."""
+    """Serialize transactions while allowing same-thread reentry for one record set."""
     lock_root = Path(tempfile.gettempdir()) / "semantic-alignment-locks"
     lock_root.mkdir(parents=True, exist_ok=True)
     key = digest_text(str(Path(record_dir).resolve()))
+    held = getattr(_RECORD_LOCK_STATE, "held", None)
+    if held is None:
+        held = {}
+        _RECORD_LOCK_STATE.held = held
+    if key in held:
+        held[key] += 1
+        try:
+            yield
+        finally:
+            held[key] -= 1
+        return
+
     lock_path = lock_root / f"{key}.lock"
     handle = lock_path.open("a+b")
     try:
@@ -100,8 +116,10 @@ def record_lock(record_dir):
             import fcntl
 
             fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        held[key] = 1
         yield
     finally:
+        held.pop(key, None)
         if os.name == "nt":
             handle.seek(0)
             msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
