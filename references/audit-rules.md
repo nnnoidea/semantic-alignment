@@ -62,6 +62,8 @@ A full audit is normally preferable when the user requests it, or when a structu
 
 Full does not mean writing an execution log. It means covering every current user semantic and inspecting the complete configured artifact scope for additions.
 
+Start a full audit with `audit.py begin-full --confirm-user-authorized`. This creates a persisted active run. Coverage and difference findings recorded while the run is active carry that run ID. `finalize --mode full` must be called with `--confirm-full-scope-reviewed` and must reject old coverage or still-open differences that were not refreshed in the active run, even when no files changed since the prior snapshot.
+
 ## Two-Direction Coverage
 
 ### User semantics to artifact (`U → A`)

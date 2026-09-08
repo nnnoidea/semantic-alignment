@@ -90,6 +90,15 @@ python semantic-alignment/scripts/audit.py <record-dir> plan --artifact-root <pr
 
 Agent 对着待审计用户语义检查真实产物，并在每个小组完成后立即记录覆盖结论；全部必要语义和变化产物处理完后，再提交新的可信快照。
 
+完整审计必须先开启一个明确经用户授权的持久化 run：
+
+```bash
+python semantic-alignment/scripts/audit.py <record-dir> begin-full \
+  --artifact-root <project-root> --confirm-user-authorized
+```
+
+随后 `finalize --mode full` 必须带 `--confirm-full-scope-reviewed`，并且会拒绝复用未在当前 active run 中刷新的旧覆盖或未关闭差异。
+
 ## 妥协提醒
 
 妥协不能依赖代码审计恢复，因为相同代码可能来自完全不同的原因。因此妥协在决策发生时记录，并只在以下情况提醒：

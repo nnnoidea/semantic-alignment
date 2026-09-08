@@ -81,6 +81,15 @@ python semantic-alignment/scripts/audit.py <record-dir> plan --artifact-root <pr
 
 The plan reports changed artifact paths, missing semantic coverage, invalidated cached results, direct related context, stale difference evidence, and whether a full audit is required. After inspecting each semantic against the real artifact and recording findings immediately, the agent finalizes a new trusted snapshot.
 
+A full audit must start with an explicit, user-authorized run:
+
+```bash
+python semantic-alignment/scripts/audit.py <record-dir> begin-full \
+  --artifact-root <project-root> --confirm-user-authorized
+```
+
+`finalize --mode full` then requires `--confirm-full-scope-reviewed` and refuses to reuse old coverage or open differences that were not refreshed in that active run.
+
 ## Compromise Reminders
 
 Compromises are recorded when the decision occurs because their reasons cannot be reconstructed safely from code. They are surfaced only when current work touches their scope or new evidence matches the recorded recheck condition.

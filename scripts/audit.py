@@ -3,6 +3,7 @@ import argparse
 import json
 import re
 import sys
+import uuid
 from pathlib import Path
 
 from recordlib import (
@@ -59,6 +60,46 @@ def save_working_state(record_dir, state, reason):
     mark_audit_stale(state, reason)
     save_audit_state(record_dir, state)
     atomic_write_text(record_dir / "alignment-report.md", render_alignment_report(record_dir))
+
+
+def artifact_root_identity(artifact_root):
+    return str(Path(artifact_root).resolve())
+
+
+def active_audit_for_write(state, artifact_root):
+    active = state.get("active_audit")
+    if active is None:
+        return None
+    if not isinstance(active, dict):
+        raise ValueError("audit-state.json: active_audit must be an object")
+    if active.get("mode") != "full":
+        raise ValueError(f"unsupported active audit mode: {active.get('mode')!r}")
+    if active.get("artifact_root") != artifact_root_identity(artifact_root):
+        raise ValueError("active audit artifact root does not match --artifact-root")
+    return active
+
+
+def begin_full(args, record_dir, artifact_root):
+    if not args.confirm_user_authorized:
+        raise ValueError("begin-full requires --confirm-user-authorized")
+    state = load_audit_state(record_dir)
+    if state.get("active_audit") is not None:
+        active = state["active_audit"]
+        run_id = active.get("run_id", "?") if isinstance(active, dict) else "?"
+        raise ValueError(f"active audit already exists: {run_id}")
+    snapshot = build_snapshot(artifact_root, args.scope)
+    started_at = utc_now()
+    run_id = "full-" + uuid.uuid4().hex
+    state["active_audit"] = {
+        "run_id": run_id,
+        "mode": "full",
+        "artifact_root": artifact_root_identity(artifact_root),
+        "scopes": snapshot["scopes"],
+        "started_at": started_at,
+        "user_authorized": True,
+    }
+    save_audit_state(record_dir, state)
+    print(f"began full audit {run_id}")
 
 
 def make_plan(record_dir, artifact_root, scopes):
@@ -196,6 +237,8 @@ def record_coverage(args, record_dir, artifact_root):
     semantics = current_semantics(record_dir)
     if args.semantic_id not in semantics:
         raise ValueError(f"unknown current user semantic: {args.semantic_id}")
+    state = load_audit_state(record_dir)
+    active = active_audit_for_write(state, artifact_root)
     evidence = version_evidence(artifact_root, args.evidence)
     if any(item["kind"] == "missing" for item in evidence):
         missing = [item["path"] for item in evidence if item["kind"] == "missing"]
@@ -203,8 +246,7 @@ def record_coverage(args, record_dir, artifact_root):
     event = semantics[args.semantic_id]
     if args.status == "satisfied" and not args.counterexample_review.strip():
         raise ValueError("satisfied coverage requires --counterexample-review")
-    state = load_audit_state(record_dir)
-    state.setdefault("coverage", {})[args.semantic_id] = {
+    coverage = {
         "semantic_revision": semantic_revision(event),
         "related_semantics": related_semantic_revisions(record_dir, args.semantic_id),
         "status": args.status,
@@ -217,6 +259,9 @@ def record_coverage(args, record_dir, artifact_root):
         "notes": args.notes,
         "audited_at": utc_now(),
     }
+    if active:
+        coverage["audit_run_id"] = active["run_id"]
+    state.setdefault("coverage", {})[args.semantic_id] = coverage
     save_working_state(record_dir, state, f"coverage:{args.semantic_id}")
     print(f"recorded coverage for {args.semantic_id}")
 
@@ -233,6 +278,7 @@ def record_difference(args, record_dir, artifact_root):
         raise ValueError("evidence path does not exist: " + ", ".join(missing))
 
     state = load_audit_state(record_dir)
+    active = active_audit_for_write(state, artifact_root)
     differences = state.setdefault("differences", [])
     difference_id = args.id or next_prefixed_id((item.get("id") for item in differences), "D")
     if not re.fullmatch(r"D\d+", difference_id):
@@ -258,6 +304,8 @@ def record_difference(args, record_dir, artifact_root):
         "notes": args.notes,
         "audited_at": utc_now(),
     }
+    if active:
+        replacement["audit_run_id"] = active["run_id"]
     for index, item in enumerate(differences):
         if item.get("id") == difference_id:
             differences[index] = replacement
@@ -286,12 +334,6 @@ def resolve_difference(args, record_dir):
 def finalize(args, record_dir, artifact_root):
     plan = make_plan(record_dir, artifact_root, args.scope)
     problems = []
-    if plan["coverage"]["missing"]:
-        problems.append("missing coverage: " + ", ".join(plan["coverage"]["missing"]))
-    if plan["coverage"]["stale"]:
-        problems.append("stale coverage: " + ", ".join(plan["coverage"]["stale"]))
-    if plan["stale_differences"]:
-        problems.append("stale differences: " + ", ".join(plan["stale_differences"]))
     state = load_audit_state(record_dir)
     semantics = current_semantics(record_dir)
     current_coverage = {
@@ -300,16 +342,59 @@ def finalize(args, record_dir, artifact_root):
         if semantic_id in semantics
     }
     open_differences = [item for item in state.get("differences", []) if item.get("status") != "resolved"]
+    if plan["coverage"]["missing"]:
+        problems.append("missing coverage: " + ", ".join(plan["coverage"]["missing"]))
+    if plan["coverage"]["stale"]:
+        problems.append("stale coverage: " + ", ".join(plan["coverage"]["stale"]))
+    if plan["stale_differences"]:
+        problems.append("stale differences: " + ", ".join(plan["stale_differences"]))
     for semantic_id, coverage in current_coverage.items():
         if coverage.get("status") == "satisfied":
             continue
         if not any(semantic_id in item.get("user_semantics", []) for item in open_differences):
             problems.append(f"non-satisfied coverage for {semantic_id} has no reported difference")
     changed = sum(plan["changed_paths"].values(), [])
-    if changed and not args.confirm_all_changes_reviewed:
+    if args.mode == "incremental" and changed and not args.confirm_all_changes_reviewed:
         problems.append("artifact changes exist; pass --confirm-all-changes-reviewed only after reviewing every listed path")
     if args.mode == "incremental" and plan["full_required"]:
         problems.append("the current audit plan requires --mode full")
+    completed_run_id = None
+    if args.mode == "full":
+        active = state.get("active_audit")
+        if not isinstance(active, dict) or active.get("mode") != "full":
+            problems.append("full audit requires an active full audit session; run begin-full first")
+        else:
+            completed_run_id = active.get("run_id")
+            if active.get("artifact_root") != artifact_root_identity(artifact_root):
+                problems.append("active full audit artifact root does not match --artifact-root")
+            if active.get("scopes") != plan["snapshot"].get("scopes"):
+                problems.append("active full audit scope does not match finalize scope")
+            if not isinstance(completed_run_id, str) or not completed_run_id.strip():
+                problems.append("active full audit is missing run_id")
+            else:
+                not_refreshed = [
+                    semantic_id
+                    for semantic_id in sorted(semantics, key=id_sort_key)
+                    if current_coverage.get(semantic_id, {}).get("audit_run_id") != completed_run_id
+                ]
+                if not_refreshed:
+                    problems.append(
+                        "full audit coverage not refreshed in active run: " + ", ".join(not_refreshed)
+                    )
+                unreviewed_differences = [
+                    item.get("id", "?")
+                    for item in open_differences
+                    if item.get("audit_run_id") != completed_run_id
+                ]
+                if unreviewed_differences:
+                    problems.append(
+                        "open differences not reviewed in active full audit: "
+                        + ", ".join(sorted(unreviewed_differences, key=id_sort_key))
+                    )
+        if not args.confirm_full_scope_reviewed:
+            problems.append(
+                "full artifact scope was not confirmed; pass --confirm-full-scope-reviewed only after reviewing every scoped artifact path"
+            )
     active_compromises = current_compromises(record_dir)
     unknown_compromises = [item for item in args.relevant_compromise if item not in active_compromises]
     if unknown_compromises:
@@ -329,6 +414,9 @@ def finalize(args, record_dir, artifact_root):
         "semantic_count": len(semantics),
         "file_count": len(plan["snapshot"].get("files", {})),
     }
+    if completed_run_id:
+        state["last_audit"]["audit_run_id"] = completed_run_id
+        state.pop("active_audit", None)
     save_audit_state(record_dir, state)
     atomic_write_text(record_dir / "alignment-report.md", render_alignment_report(record_dir))
     print(f"finalized {args.mode} audit at {completed_at}")
@@ -352,6 +440,11 @@ def main():
     add_common_root(plan_parser)
     plan_parser.add_argument("--scope", action="append", default=[])
     plan_parser.add_argument("--json", action="store_true")
+
+    begin_full_parser = subparsers.add_parser("begin-full", help="Start a user-authorized full audit run")
+    add_common_root(begin_full_parser)
+    begin_full_parser.add_argument("--scope", action="append", default=[])
+    begin_full_parser.add_argument("--confirm-user-authorized", action="store_true")
 
     coverage_parser = subparsers.add_parser("record-coverage", help="Record code-derived implementation evidence for one user semantic")
     add_common_root(coverage_parser)
@@ -390,6 +483,7 @@ def main():
     finalize_parser.add_argument("--scope", action="append", default=[])
     finalize_parser.add_argument("--mode", choices=("full", "incremental"), required=True)
     finalize_parser.add_argument("--confirm-all-changes-reviewed", action="store_true")
+    finalize_parser.add_argument("--confirm-full-scope-reviewed", action="store_true")
     finalize_parser.add_argument("--relevant-compromise", action="append", default=[])
 
     subparsers.add_parser("render", help="Regenerate alignment-report.md from current records")
@@ -401,6 +495,8 @@ def main():
         with record_lock(record_dir):
             if args.command == "plan":
                 print_plan(make_plan(record_dir, args.artifact_root, args.scope), args.json)
+            elif args.command == "begin-full":
+                begin_full(args, record_dir, args.artifact_root)
             elif args.command == "record-coverage":
                 record_coverage(args, record_dir, args.artifact_root)
             elif args.command == "record-difference":

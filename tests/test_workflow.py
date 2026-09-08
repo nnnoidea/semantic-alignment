@@ -27,6 +27,60 @@ def run_script(name, *args, check=True):
     return result
 
 
+def begin_full_audit(records, artifact_root, *args, check=True):
+    return run_script(
+        "audit.py",
+        records,
+        "begin-full",
+        "--artifact-root",
+        artifact_root,
+        *args,
+        "--confirm-user-authorized",
+        check=check,
+    )
+
+
+def finalize_full_audit(records, artifact_root, *args, check=True):
+    return run_script(
+        "audit.py",
+        records,
+        "finalize",
+        "--artifact-root",
+        artifact_root,
+        "--mode",
+        "full",
+        "--confirm-full-scope-reviewed",
+        *args,
+        check=check,
+    )
+
+
+def record_feature_coverage(records, artifact_root, semantic_id="U1"):
+    return run_script(
+        "audit.py",
+        records,
+        "record-coverage",
+        "--artifact-root",
+        artifact_root,
+        "--semantic-id",
+        semantic_id,
+        "--status",
+        "satisfied",
+        "--assertion-type",
+        "capability",
+        "--counterexample-review",
+        "Checked the only feature entry path; no universal constraint applies.",
+        "--source",
+        "user-explicit",
+        "--relation",
+        "implements",
+        "--implementation",
+        f"feature.txt covers {semantic_id}.",
+        "--evidence",
+        "feature.txt",
+    )
+
+
 class WorkflowTest(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
@@ -62,6 +116,7 @@ class WorkflowTest(unittest.TestCase):
 
     def test_git_snapshot_is_stable_when_an_unchanged_file_is_staged(self):
         subprocess.run(["git", "init", "-q", str(self.project)], check=True)
+        begin_full_audit(self.records, self.project)
         run_script(
             "audit.py",
             self.records,
@@ -85,16 +140,7 @@ class WorkflowTest(unittest.TestCase):
             "--evidence",
             "feature.txt",
         )
-        run_script(
-            "audit.py",
-            self.records,
-            "finalize",
-            "--artifact-root",
-            self.project,
-            "--mode",
-            "full",
-            "--confirm-all-changes-reviewed",
-        )
+        finalize_full_audit(self.records, self.project)
         subprocess.run(["git", "-C", str(self.project), "add", "feature.txt"], check=True)
         plan = json.loads(
             run_script("audit.py", self.records, "plan", "--artifact-root", self.project, "--json").stdout
@@ -201,6 +247,7 @@ class WorkflowTest(unittest.TestCase):
         self.assertIn("missing-counterexample-review", plan["coverage"]["stale"]["U1"])
 
     def test_legacy_coverage_is_not_invalidated_only_by_new_audit_fields(self):
+        begin_full_audit(self.records, self.project)
         run_script(
             "audit.py",
             self.records,
@@ -224,16 +271,7 @@ class WorkflowTest(unittest.TestCase):
             "--evidence",
             "feature.txt",
         )
-        run_script(
-            "audit.py",
-            self.records,
-            "finalize",
-            "--artifact-root",
-            self.project,
-            "--mode",
-            "full",
-            "--confirm-all-changes-reviewed",
-        )
+        finalize_full_audit(self.records, self.project)
 
         state_path = self.records / "audit-state.json"
         state = json.loads(state_path.read_text(encoding="utf-8"))
@@ -275,6 +313,7 @@ class WorkflowTest(unittest.TestCase):
         initial = run_script("audit.py", self.records, "plan", "--artifact-root", self.project, "--json")
         self.assertEqual("full", json.loads(initial.stdout)["recommended_mode"])
 
+        begin_full_audit(self.records, self.project)
         run_script(
             "audit.py",
             self.records,
@@ -298,16 +337,7 @@ class WorkflowTest(unittest.TestCase):
             "--evidence",
             "feature.txt",
         )
-        run_script(
-            "audit.py",
-            self.records,
-            "finalize",
-            "--artifact-root",
-            self.project,
-            "--mode",
-            "full",
-            "--confirm-all-changes-reviewed",
-        )
+        finalize_full_audit(self.records, self.project)
         run_script(
             "audit.py",
             self.records,
@@ -374,6 +404,136 @@ class WorkflowTest(unittest.TestCase):
         self.assertIn("user-semantic-changed", semantic_change["coverage"]["stale"]["U1"])
         self.assertTrue(any(reason == "semantic-changed:U1" for reason in semantic_change["stale_differences"]["D1"]))
 
+    def test_full_finalize_requires_active_full_audit_session(self):
+        record_feature_coverage(self.records, self.project)
+
+        rejected = finalize_full_audit(self.records, self.project, check=False)
+
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertIn("requires an active full audit session", rejected.stderr)
+
+    def test_begin_full_requires_user_authorization(self):
+        rejected = run_script(
+            "audit.py",
+            self.records,
+            "begin-full",
+            "--artifact-root",
+            self.project,
+            check=False,
+        )
+
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertIn("requires --confirm-user-authorized", rejected.stderr)
+
+    def test_full_audit_requires_all_current_semantics_refreshed_in_active_run(self):
+        run_script(
+            "record_event.py",
+            self.records,
+            "semantic",
+            "--operation",
+            "add",
+            "--category",
+            "process",
+            "--text",
+            "The feature is audited.",
+            "--reason",
+            "clarification",
+            "--source",
+            "test",
+        )
+        begin_full_audit(self.records, self.project)
+        record_feature_coverage(self.records, self.project, "U1")
+
+        rejected = finalize_full_audit(self.records, self.project, check=False)
+
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertIn("missing coverage: U2", rejected.stderr)
+        self.assertIn("full audit coverage not refreshed in active run: U2", rejected.stderr)
+
+    def test_full_audit_requires_full_scope_confirmation_even_without_changes(self):
+        begin_full_audit(self.records, self.project)
+        record_feature_coverage(self.records, self.project)
+        finalize_full_audit(self.records, self.project)
+
+        begin_full_audit(self.records, self.project)
+        record_feature_coverage(self.records, self.project)
+        rejected = run_script(
+            "audit.py",
+            self.records,
+            "finalize",
+            "--artifact-root",
+            self.project,
+            "--mode",
+            "full",
+            check=False,
+        )
+
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertIn("full artifact scope was not confirmed", rejected.stderr)
+        finalize_full_audit(self.records, self.project)
+
+    def test_full_audit_requires_open_differences_refreshed_in_active_run(self):
+        begin_full_audit(self.records, self.project)
+        record_feature_coverage(self.records, self.project)
+        finalize_full_audit(self.records, self.project)
+        run_script(
+            "audit.py",
+            self.records,
+            "record-difference",
+            "--artifact-root",
+            self.project,
+            "--type",
+            "added",
+            "--source",
+            "agent-added",
+            "--relation",
+            "extends",
+            "--implementation",
+            "The file also contains a newline terminator.",
+            "--user-semantics",
+            "U1",
+            "--evidence",
+            "feature.txt",
+            "--impact",
+            "low",
+        )
+
+        begin_full_audit(self.records, self.project)
+        record_feature_coverage(self.records, self.project)
+        rejected = finalize_full_audit(self.records, self.project, check=False)
+
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertIn("open differences not reviewed in active full audit: D1", rejected.stderr)
+
+        run_script(
+            "audit.py",
+            self.records,
+            "record-difference",
+            "--id",
+            "D1",
+            "--artifact-root",
+            self.project,
+            "--type",
+            "added",
+            "--source",
+            "agent-added",
+            "--relation",
+            "extends",
+            "--implementation",
+            "The file also contains a newline terminator.",
+            "--user-semantics",
+            "U1",
+            "--evidence",
+            "feature.txt",
+            "--impact",
+            "low",
+        )
+        finalize_full_audit(self.records, self.project)
+        state = json.loads((self.records / "audit-state.json").read_text(encoding="utf-8"))
+        self.assertNotIn("active_audit", state)
+        self.assertEqual(state["last_audit"]["audit_run_id"], state["coverage"]["U1"]["audit_run_id"])
+        self.assertEqual(state["last_audit"]["audit_run_id"], state["differences"][0]["audit_run_id"])
+
     def test_related_semantics_are_a_small_incremental_audit_context(self):
         run_script(
             "record_event.py",
@@ -392,6 +552,7 @@ class WorkflowTest(unittest.TestCase):
             "--source",
             "test",
         )
+        begin_full_audit(self.records, self.project)
         for semantic_id in ("U1", "U2"):
             run_script(
                 "audit.py",
@@ -416,16 +577,7 @@ class WorkflowTest(unittest.TestCase):
                 "--evidence",
                 "feature.txt",
             )
-        run_script(
-            "audit.py",
-            self.records,
-            "finalize",
-            "--artifact-root",
-            self.project,
-            "--mode",
-            "full",
-            "--confirm-all-changes-reviewed",
-        )
+        finalize_full_audit(self.records, self.project)
 
         run_script(
             "record_event.py",
@@ -557,6 +709,7 @@ class WorkflowTest(unittest.TestCase):
         self.assertIn("is not symmetric", result.stderr)
 
     def test_audit_updates_are_immediately_persisted_and_reported_as_stale(self):
+        begin_full_audit(self.records, self.project)
         run_script(
             "audit.py",
             self.records,
@@ -580,16 +733,7 @@ class WorkflowTest(unittest.TestCase):
             "--evidence",
             "feature.txt",
         )
-        run_script(
-            "audit.py",
-            self.records,
-            "finalize",
-            "--artifact-root",
-            self.project,
-            "--mode",
-            "full",
-            "--confirm-all-changes-reviewed",
-        )
+        finalize_full_audit(self.records, self.project)
         run_script(
             "audit.py",
             self.records,
@@ -654,6 +798,7 @@ class WorkflowTest(unittest.TestCase):
         run_script("validate_records.py", records)
 
     def test_retired_non_satisfied_semantic_does_not_block_finalize(self):
+        begin_full_audit(self.records, self.project)
         run_script(
             "audit.py",
             self.records,
@@ -696,16 +841,7 @@ class WorkflowTest(unittest.TestCase):
             "--impact",
             "medium",
         )
-        run_script(
-            "audit.py",
-            self.records,
-            "finalize",
-            "--artifact-root",
-            self.project,
-            "--mode",
-            "full",
-            "--confirm-all-changes-reviewed",
-        )
+        finalize_full_audit(self.records, self.project)
         run_script("audit.py", self.records, "resolve-difference", "--id", "D1", "--status", "resolved")
         run_script(
             "record_event.py",
@@ -772,6 +908,7 @@ class WorkflowTest(unittest.TestCase):
         report = (self.records / "alignment-report.md").read_text(encoding="utf-8")
         self.assertIn("Active compromises retained internally: 1", report)
         self.assertIn('"compromise_id":"C1"', (self.records / "compromises.jsonl").read_text(encoding="utf-8"))
+        begin_full_audit(self.records, self.project)
         run_script(
             "audit.py",
             self.records,
@@ -795,21 +932,56 @@ class WorkflowTest(unittest.TestCase):
             "--evidence",
             "feature.txt",
         )
-        run_script(
-            "audit.py",
-            self.records,
-            "finalize",
-            "--artifact-root",
-            self.project,
-            "--mode",
-            "full",
-            "--confirm-all-changes-reviewed",
-            "--relevant-compromise",
-            "C1",
-        )
+        finalize_full_audit(self.records, self.project, "--relevant-compromise", "C1")
         report = (self.records / "alignment-report.md").read_text(encoding="utf-8")
         self.assertIn("C1", report)
         self.assertIn("Manual save remains", report)
+        run_script("validate_records.py", self.records)
+
+    def test_compromise_update_rejects_empty_required_field_without_appending(self):
+        run_script(
+            "record_event.py",
+            self.records,
+            "compromise",
+            "--operation",
+            "add",
+            "--original-target",
+            "Direct export",
+            "--actual-choice",
+            "Clipboard copy",
+            "--gap",
+            "Manual save remains",
+            "--reason",
+            "No file permission",
+            "--evidence",
+            "Permission denial",
+            "--scope",
+            "export",
+            "--affected-user-semantics",
+            "U1",
+            "--recheck-condition",
+            "File permission becomes available",
+            "--recheck-method",
+            "Attempt bounded file creation",
+        )
+        before = (self.records / "compromises.jsonl").read_text(encoding="utf-8")
+
+        rejected = run_script(
+            "record_event.py",
+            self.records,
+            "compromise",
+            "--operation",
+            "update",
+            "--id",
+            "C1",
+            "--gap",
+            "",
+            check=False,
+        )
+
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertIn("missing required compromise fields: gap", rejected.stderr)
+        self.assertEqual(before, (self.records / "compromises.jsonl").read_text(encoding="utf-8"))
         run_script("validate_records.py", self.records)
 
 

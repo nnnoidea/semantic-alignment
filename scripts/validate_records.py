@@ -212,6 +212,30 @@ def validate_audit_state(record_dir):
         return ["audit-state.json: root must be an object"]
     if state.get("schema_version") != SCHEMA_VERSION:
         errors.append(f"audit-state.json: schema_version must be {SCHEMA_VERSION}")
+    active_audit = state.get("active_audit")
+    if active_audit is not None:
+        label = "audit-state.json:active_audit"
+        if not isinstance(active_audit, dict):
+            errors.append(f"{label}: must be an object")
+        else:
+            require_fields(
+                active_audit,
+                ["run_id", "mode", "artifact_root", "scopes", "started_at", "user_authorized"],
+                label,
+                errors,
+            )
+            if active_audit.get("mode") != "full":
+                errors.append(f"{label}: mode must be 'full'")
+            if not isinstance(active_audit.get("run_id"), str) or not active_audit.get("run_id", "").strip():
+                errors.append(f"{label}: run_id must be non-empty")
+            artifact_root = active_audit.get("artifact_root")
+            if not isinstance(artifact_root, str) or not Path(artifact_root).is_absolute():
+                errors.append(f"{label}: artifact_root must be an absolute path")
+            scopes = active_audit.get("scopes")
+            if not isinstance(scopes, list) or not scopes or any(not isinstance(scope, str) or not scope for scope in scopes):
+                errors.append(f"{label}: scopes must be a non-empty list of strings")
+            if active_audit.get("user_authorized") is not True:
+                errors.append(f"{label}: user_authorized must be true")
     if not isinstance(state.get("coverage"), dict):
         errors.append("audit-state.json: coverage must be an object")
         coverage = {}
@@ -236,6 +260,8 @@ def validate_audit_state(record_dir):
         counterexample_review = item.get("counterexample_review")
         if counterexample_review is not None and not isinstance(counterexample_review, str):
             errors.append(f"{label}: counterexample_review must be a string")
+        if item.get("audit_run_id") is not None and not isinstance(item.get("audit_run_id"), str):
+            errors.append(f"{label}: audit_run_id must be a string")
         if assertion_type is not None and item.get("status") == "satisfied":
             if not isinstance(counterexample_review, str) or not counterexample_review.strip():
                 errors.append(
@@ -281,6 +307,8 @@ def validate_audit_state(record_dir):
             errors.append(f"{label}: invalid impact: {item.get('impact')!r}")
         if item.get("status") not in DIFFERENCE_STATUSES:
             errors.append(f"{label}: invalid status: {item.get('status')!r}")
+        if item.get("audit_run_id") is not None and not isinstance(item.get("audit_run_id"), str):
+            errors.append(f"{label}: audit_run_id must be a string")
         if not isinstance(item.get("user_semantics"), list):
             errors.append(f"{label}: user_semantics must be a list")
         elif any(semantic_id not in known_ids for semantic_id in item["user_semantics"]):

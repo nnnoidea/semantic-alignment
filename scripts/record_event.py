@@ -161,6 +161,26 @@ def split_ids(value):
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
+def validate_compromise_value(value):
+    required = (
+        "original_target",
+        "actual_choice",
+        "gap",
+        "reason",
+        "evidence",
+        "scope",
+        "recheck_condition",
+        "recheck_method",
+    )
+    missing = [
+        name.replace("_", "-")
+        for name in required
+        if not isinstance(value.get(name), str) or not value.get(name, "").strip()
+    ]
+    if missing:
+        raise ValueError("missing required compromise fields: " + ", ".join(missing))
+
+
 def record_compromise(args, record_dir):
     events = read_jsonl(record_dir / "compromises.jsonl")
     latest = latest_by_id(events, "compromise_id")
@@ -173,7 +193,7 @@ def record_compromise(args, record_dir):
             raise ValueError(f"invalid compromise ID: {compromise_id!r}")
         if compromise_id in latest:
             raise ValueError(f"compromise already exists: {compromise_id}")
-        required = {
+        value = {
             "original_target": args.original_target,
             "actual_choice": args.actual_choice,
             "gap": args.gap,
@@ -183,10 +203,6 @@ def record_compromise(args, record_dir):
             "recheck_condition": args.recheck_condition,
             "recheck_method": args.recheck_method,
         }
-        missing = [name.replace("_", "-") for name, value in required.items() if not value]
-        if missing:
-            raise ValueError("missing required compromise fields: " + ", ".join(missing))
-        value = required
         value["affected_user_semantics"] = split_ids(args.affected_user_semantics)
         value["status"] = "active"
         value["last_checked"] = args.last_checked or "never"
@@ -241,6 +257,7 @@ def record_compromise(args, record_dir):
 
     if value.get("status") not in COMPROMISE_STATUSES:
         raise ValueError(f"invalid compromise status: {value.get('status')}")
+    validate_compromise_value(value)
     active_semantics = current_semantics(record_dir)
     unknown_semantics = [item for item in value.get("affected_user_semantics", []) if item not in active_semantics]
     if unknown_semantics:

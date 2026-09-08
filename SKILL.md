@@ -113,6 +113,13 @@ Evidence versions use file type, size, modification time, and mode. Do not hash 
 
 Run `audit.py plan` before auditing. Recheck only missing or stale semantics, using each target's direct related semantics as context, plus added, modified, and deleted artifact paths. Unrelated semantic changes never invalidate a completed result. A full audit is technically required for the first trusted baseline or when the artifact scope/mapping is unreliable; tell the user and obtain their request or acceptance before performing it.
 
+When the user requests or accepts a full audit, start a persisted full-audit run before recording coverage. The tool tags coverage and difference findings written during that run, keeps the run resumable if interrupted, and refuses full finalization unless every current semantic and still-open difference was reviewed in that same run:
+
+```bash
+python semantic-alignment/scripts/audit.py <record-dir> begin-full \
+  --artifact-root <project-root> --confirm-user-authorized
+```
+
 Record each semantic conclusion through the tool immediately after auditing that semantic and its small related context. Do not wait for a long audit to finish: persisted coverage is the recovery checkpoint after context compaction. Never hand-edit `audit-state.json`. Finalize only after reviewing every changed path:
 
 ```bash
@@ -131,6 +138,9 @@ python semantic-alignment/scripts/audit.py <record-dir> record-difference \
 
 python semantic-alignment/scripts/audit.py <record-dir> finalize \
   --artifact-root <project-root> --mode incremental --confirm-all-changes-reviewed
+
+python semantic-alignment/scripts/audit.py <record-dir> finalize \
+  --artifact-root <project-root> --mode full --confirm-full-scope-reviewed
 ```
 
 Pass `--relevant-compromise C1` for compromises relevant to the audited scope. Other active compromises remain stored but are not shown as reminders.

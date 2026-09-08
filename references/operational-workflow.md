@@ -182,6 +182,16 @@ The plan reports:
 
 The default `.` scope uses Git tracked and non-ignored files when available. Repeat `--scope <path>` to audit ignored generated outputs or a narrower artifact subtree directly from the filesystem.
 
+For a user-requested or user-accepted full audit, open a persistent full-audit run before recording findings:
+
+```bash
+python semantic-alignment/scripts/audit.py <record-dir> begin-full \
+  --artifact-root <project-root> \
+  --confirm-user-authorized
+```
+
+The active run is stored in `audit-state.json`. `record-coverage` and `record-difference` automatically attach the run ID while it is active, so an interrupted full audit can resume without relying on conversation context.
+
 ### Inspect
 
 Inspect two sets:
@@ -240,6 +250,17 @@ python semantic-alignment/scripts/audit.py <record-dir> finalize \
   --mode incremental \
   --confirm-all-changes-reviewed
 ```
+
+For a full audit, finalize only after reviewing the complete configured artifact scope, not merely changed paths:
+
+```bash
+python semantic-alignment/scripts/audit.py <record-dir> finalize \
+  --artifact-root <project-root> \
+  --mode full \
+  --confirm-full-scope-reviewed
+```
+
+Full finalization requires an active full-audit run, matching artifact root and scope, fresh coverage for every current user semantic from that run, and a same-run review for every still-open difference. Successful full finalization clears the active run.
 
 Add `--relevant-compromise C1` for each active compromise that was relevant to this audit. Finalization refuses missing or stale coverage and stale difference evidence. It stores the new artifact snapshot and regenerates `alignment-report.md`, showing only the compromises relevant to that audit while retaining all others internally.
 

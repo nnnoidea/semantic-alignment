@@ -148,6 +148,7 @@ This is the current machine-owned audit cache, not an append-only history file.
         {"path": "src/app.py", "kind": "file", "version": "stat:file:0o644:1200:1788750000000000000"}
       ],
       "notes": "Concrete audit conclusion",
+      "audit_run_id": "full-20260904T080000Z",
       "audited_at": "2026-09-04T08:20:00Z"
     }
   },
@@ -166,12 +167,14 @@ This is the current machine-owned audit cache, not an append-only history file.
       "impact": "low",
       "status": "open",
       "notes": "Not explicitly requested",
+      "audit_run_id": "full-20260904T080000Z",
       "audited_at": "2026-09-04T08:20:00Z"
     }
   ],
   "last_audit": {
     "mode": "full",
     "completed_at": "2026-09-04T08:30:00Z",
+    "audit_run_id": "full-20260904T080000Z",
     "current": true,
     "relevant_compromises": [],
     "reviewed_changes": {"added": [], "modified": [], "deleted": []},
@@ -212,6 +215,23 @@ Difference impact:
 `related_semantics` captures the direct related context and revision numbers used for that conclusion. Unrelated semantics are intentionally absent and do not invalidate it.
 
 Evidence `version` values use file type, size, nanosecond modification time, and mode. They intentionally do not hash file contents or use Git object IDs. Audit-rule document edits are not stored as a cache version and do not automatically invalidate conclusions.
+
+`active_audit` is optional and exists only while a full audit is in progress:
+
+```json
+{
+  "active_audit": {
+    "run_id": "full-20260904T080000Z",
+    "mode": "full",
+    "artifact_root": "/workspace/example-project",
+    "scopes": ["."],
+    "started_at": "2026-09-04T08:00:00Z",
+    "user_authorized": true
+  }
+}
+```
+
+Full-audit coverage and difference entries written during that run include `audit_run_id`; older cached entries may omit it and remain valid for incremental planning, but they cannot satisfy a later `finalize --mode full`.
 
 Do not hand-edit coverage, differences, evidence versions, or snapshots. Use `scripts/audit.py`, and record each semantic conclusion immediately after auditing its small related context.
 
