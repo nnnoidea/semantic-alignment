@@ -1,4 +1,4 @@
 interface:
   display_name: "Semantic Alignment"
-  short_description: "Keep durable product and system implementation aligned with user design."
-  default_prompt: "Use $semantic-alignment for durable product or system design work: persist every accepted durable semantic through the tools, audit real artifacts and bypass paths incrementally, report differences, and retain compromises. Skip routine experiments and ordinary writing unless explicitly requested or they define a lasting implementation contract."
+  short_description: "Verify requirements and expose agent implementation choices."
+  default_prompt: "Use $semantic-alignment when establishing or changing durable product or system design, or when explicitly requested to record or audit semantics; maintain current Markdown meaning and show requirement fulfillment and agent implementation choices."
