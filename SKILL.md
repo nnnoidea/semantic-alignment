@@ -70,6 +70,8 @@ Inspect potentially unnecessary additions such as SHA256 checks, extra state, pr
 
 Surface omissions, narrowing, substitutions, conflicts, and uncertainty alongside choices. No omissions does not mean no additions. Do not promote observed choices into accepted requirements; leave unmet behavior visible as a current design gap.
 
+For material findings, assess what repairing them would require and which information or decisions, if any, need user confirmation. First use accepted design, prior answers and authorization, and inspectable artifacts; do not ask the user to supply facts the agent can establish. Distinguish restoring an agreed behavior from choosing new behavior or resolving conflicting intent. Show necessary confirmation points with the affected behavior and consequences, not a blanket request to approve every fix. When repair work is authorized, proceed with clear independent repairs and pause only work that depends on an unresolved user decision. Finding a problem does not create a new requirement or expand authorization.
+
 State scope, limits, and evidence for substantive findings. Avoid persistent per-requirement pass entries or repeated generic counterexample paragraphs. Reuse understanding for navigation, but verify current artifacts before making current correctness claims.
 
 A requested whole-project audit covers all current design documents and relevant artifacts, including unrequested behavior. Long audits may use temporary checkpoints by topic and artifact scope, not reusable coverage. Check scope changes when resuming and remove completed checkpoints.

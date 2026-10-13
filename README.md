@@ -22,6 +22,8 @@ Report both requirement fulfillment and meaningful implementation choices by top
 
 Inspect applicable exceptions and bypass paths; main-path success does not prove universal compliance. State the checked scope rather than claiming whole-project alignment from a local check. Ordinary reports may use concise prose, tables, or useful diagrams. A dedicated audit webpage remains a deferred direction requiring separate design.
 
+For meaningful findings, assess what information or decisions are needed to repair them. Reuse existing requirements, answers, and authorization; investigate artifact facts before asking the user. State only unresolved confirmation points, the specific questions, and how different answers change the repair. Continue authorized independent fixes without adding an approval step for every defect.
+
 ## Installation And Migration
 
 Install this repository as a Codex-compatible skill named semantic-alignment. [SKILL.md](SKILL.md) is the entry point; the two linked references provide organization and report guidance as needed.
