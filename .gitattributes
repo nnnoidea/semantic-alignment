@@ -1,0 +1,5 @@
+# Keep this project's published examples out of ordinary source archives.
+/docs/showcase export-ignore
+/docs/showcase/** export-ignore
+/docs/index.html export-ignore
+/docs/.nojekyll export-ignore
