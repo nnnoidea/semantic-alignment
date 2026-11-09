@@ -17,6 +17,18 @@ Semantic Alignment compares what you asked for with what was built, then shows t
 
 Use it to review a feature built by an agent, check a handoff, or pick up a project whose decisions have become hard to track.
 
+## See the real output
+
+We used Semantic Alignment to check itself. You're welcome to explore this project's own user agreements and the resulting report—open a finding, follow it into a diagram, and inspect the original wording and evidence.
+
+**[Open the live report](https://nnnoidea.github.io/semantic-alignment/)** · [Read the user agreements](https://github.com/nnnoidea/semantic-alignment/blob/main/docs/showcase/SEMANTICS.md) · [Read the Markdown findings](https://github.com/nnnoidea/semantic-alignment/blob/main/docs/showcase/checks/2026-11-09-state-fixes/report.md)
+
+![Actual difference summary from this project's semantic check.](docs/images/self-check-summary.jpg)
+
+![Actual expandable diagram and finding details from this project's semantic check.](docs/images/self-check-detail.jpg)
+
+*Screenshots of the published report, in the user's original Chinese. This dated check retains its scope, unresolved verification gaps and full evidence; the [showcase notes](https://github.com/nnnoidea/semantic-alignment/blob/main/docs/showcase/README.md) explain what changed afterward.*
+
 ## Try it on your next change
 
 Install `SKILL.md`, `agents/`, `references/` and `assets/` together as the `semantic-alignment` skill using your agent’s supported installation mechanism. Point it at your project or change, then ask:
@@ -26,5 +38,7 @@ Install `SKILL.md`, `agents/`, `references/` and `assets/` together as the `sema
 Start from the conversation or existing requirements; you don’t need to prepare a semantic record first. For ongoing work, the Skill keeps current user agreements in the project’s designated Markdown document, or `SEMANTICS.md` by default.
 
 You get a separate summary, an expandable HTML/SVG report and editable Markdown findings. Reports are local; generation uses Python 3. The agent makes the semantic judgments, and the templates handle presentation. Conclusions remain tied to the evidence actually checked.
+
+The public showcase is specific to this project; using the Skill does not publish your records. Showcase records and reports are excluded from the default [GitHub ZIP download](https://github.com/nnnoidea/semantic-alignment/archive/refs/heads/main.zip), so you can browse them online without installing them. A full Git clone includes them for anyone who wants an offline copy.
 
 [Skill instructions](SKILL.md) · [Checking method](references/audit-presentation.md) · [Report templates](references/template-usage.md)

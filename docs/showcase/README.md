@@ -7,6 +7,8 @@ These are Semantic Alignment's own user agreements and a completed check of its 
 - [Explore the interactive diagrams](https://nnnoidea.github.io/semantic-alignment/showcase/checks/2026-11-09-state-fixes/index.html).
 - [Read the editable check report](checks/2026-11-09-state-fixes/report.md) or [supporting maintenance notes](MAINTENANCE.md).
 
+The README screenshots show the published summary and a node opened from it; that navigation and page scrolling were checked in the browser. This is not a full responsive, keyboard or printing test.
+
 The records and report keep the original Chinese wording. The dated report includes its frozen agreement baseline; the separate records reflect later accepted changes too. This check predates the removal of Chinese review copies and the publication/download setup. Those changes have not been rechecked by this report.
 
 After the two reported state-display issues were repaired, this snapshot lists 172 Agent-added choices and 6 verification gaps. These are reported entries, not a defect total. Zero listed violations or deviations is not proof of complete agreement. Earlier local evidence references are retained as provenance; unpublished material is not offered as a working link.
