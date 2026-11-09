@@ -1,33 +1,63 @@
-# Audit Presentation
+# Semantic Check Presentation
 
-Present requirement fulfillment and meaningful agent choices together by product topic, so the user can judge actual behavior at a glance.
+Apply the [content and source rules](view-content.md); this reference owns semantic-check coverage, findings and repair decisions.
 
-## Requirements In The Real Product
+Help the user discover what the Agent added, changed or decided without explicit direction, alongside unmet user requirements.
 
-Connect intended behavior to observed realization, including important conditions and exceptions. Make missing, narrowed, conflicting, or unverified behavior visible. Cite the relevant code, configuration, outputs, UI, runtime observations, or tests without dumping logs.
+Code inspection establishes actual behavior against user intent; report omissions, deviations and unspecified choices, including logic defects that explain a semantic mismatch.
 
-## Details Filled In And Additional Mechanisms
+Judge this stage against all stated behavior, conditions, exceptions and applicable shared constraints in the current agreements; completion criteria supplement this meaning. Explicitly deferred final goals remain later scope, and an agreement is never implementation evidence.
 
-Expose observed choices that matter: defaults and thresholds, data destinations and storage, triggers, failure handling, retries, permissions, and resource limits. Show the actual choices, not hypothetical ways to implement them.
+## Inspect And Disclose
 
-An extra verification layer, state store, or protocol can matter even when the successful user flow is unchanged. Explain when it activates, its consequences and complexity, and evidence for its necessity. A documented agent explanation is context, not proof of benefit or necessity.
+- Establish the artifact scope from real entries, callers, configuration, dependencies and supplied tools, distinguishing active behavior from shipped inactive content.
+- Trace normal and exceptional paths, including inherited defaults, early exits, partial effects, cleanup and recovery; verify dependency contracts and observable state where they affect a claim.
+- For each topic, connect user requirements to actual behavior and disclose every concrete choice with its values, conditions, ordering, outputs, side effects and evidence.
+- Preserve omissions, narrowing, conflicts, unverified behavior and unknown authorship; an implementation description or successful test does not establish user agreement or rationale.
+- Group for readability while retaining every distinct choice, including UI wording, styling, interaction and internal mechanisms; labels, counts and representative examples cannot replace full detail.
 
-Passing tests do not establish user consent, and code alone does not establish decision rationale. Present coherent behavior and meaningful mechanisms instead of enumerating private functions or equivalent refactors.
+## Prioritize Optional Mechanisms
 
-Use concise prose, a topic-level comparison table, or a simple diagram where it clarifies actual behavior. Connect requested behavior, realization, meaningful choices, and evidence; no mandatory row schema or separate presentation system is needed.
+Prioritize supported candidates for whole unrequested mechanisms that can be omitted while retaining the requested capability, keeping all other choices reachable.
+
+For each candidate, trace producers, consumers and failure paths and state the removal boundary, retained capability, lost guarantees, compatibility and resource effects; an unsettled consequence remains a tradeoff rather than a confident removal recommendation.
+
+Distinguish removal from choosing a replacement implementation, and distinguish an exploratory probe from a deployable change; neither an unchanged normal result nor passing tests authorize deletion.
+
+Support benefit/cost claims with evidence, label hypothetical simplified flows, and link each candidate to its complete detail and original sources.
+
+## Checking Disclosure Completeness
+
+Reconcile actual artifact choices with the report, including compound behavior and helper/library options, then correct omissions and overgeneralizations consistently across overview, detail and appendices.
+
+For a completeness claim, use independent source-first review of semantic coverage when available and authorized; otherwise perform a fresh artifact-driven countercheck and disclose that limitation.
+
+Resolve review disagreements against actual evidence, recheck repeated omission patterns and remaining findings, and leave unexamined areas explicitly outstanding.
+
+Temporary notes are optional aids, not reusable coverage; report the checked scope and limits rather than inferring completeness from files read or bugs found.
 
 ## Decisions Needed To Repair Findings
 
-For each meaningful repair direction, identify any missing user information or unsettled choice that changes the target, scope, acceptance criteria, or consequences. Examples include conflicting intended behavior, an unspecified retention policy, or a keep/remove choice for an added mechanism whose effects are not covered by the accepted design. First investigate its real role and dependencies; being unrequested alone does not prove that removing it is the correct repair.
+Assess repair information after disclosure: reuse existing intent, answers, authorization and inspectable facts, then ask only about consequential unresolved targets, scope, acceptance or effects.
 
-Separate a user decision from an artifact fact still requiring investigation, and from permission for a specific external action. Existing answers and authorization still apply. An explicit requirement to export all records provides a clear target for fixing silent truncation; introducing a new retention period requires a product choice. Do not turn ordinary implementation judgment or restoring settled requirements into mandatory confirmation.
+Each genuine question explains the uncertainty, concrete options, consequences and dependent work; restoring settled requirements and ordinary implementation choices need no new blanket approval.
 
-Present only genuine confirmation needs alongside the finding: what is missing or disputed, why available evidence cannot settle it, the exact question, and how plausible answers change the repair. Offer a recommendation and concrete options when supported, without inventing rationale or making a speculative alternative sound accepted. Group related questions by topic; no fixed checklist or per-finding form is required. If there are no new confirmation points, say so briefly for the checked scope.
+Include this assessment even when only a semantic check was requested, state briefly when no new decisions are needed, and continue authorized independent work while awaiting necessary answers.
 
-This assessment belongs in the audit result even when implementation has not been requested. Make the decision-dependent proposal concrete enough to review, and request necessary answers while continuing authorized independent work. If an action needs additional approval, first complete its authorized preparation so the user can review the actual change. Record the user's resolved durable choice in current design; until then, retain the gap or uncertainty rather than guessing it away.
+An unspecified choice is neither automatically wrong nor a deletion instruction; accepted durable decisions update the current design.
 
-## Deferred Visual Presentation
+## Report Contract: Markdown And Visual HTML
 
-A dedicated audit webpage is an accepted improvement direction: help the user see requirement realization and agent additions or filled-in details quickly, especially where implementation spans topics. Its information organization and interaction need separate design and are not settled.
+Deliver the check findings as self-contained HTML with native SVG, plus standalone SVG files and editable semantic-check Markdown as its full-content source, unless the user requests another format. Visualization is the report's presentation layer, not a separate task entry point.
 
-The current compromise is concise reports while the dedicated webpage remains unimplemented. Do not build that webpage or its mockups and prototypes until the user asks to pursue its design. This deferral applies to the dedicated audit interface: ordinary report diagrams may be used when useful without a separate visualization request. Preserve both audit outcomes in the interim format.
+Organize Markdown by agreements and their actual implementation relationships, retaining all requirements, concrete choices, values/effects, sources, uncertainty and repair decisions; keep shared scope, date, baseline, conclusions and verification limits in one place.
+
+The default reading path is **user agreements → their actual flows → concrete steps, choices and evidence**, with a brief explanation of scope and verification limits.
+
+Also provide a separate summary page for quick reading: collect identified deviations/omissions and Agent-added choices, keep unverified items separate, and link each item to its original detail and evidence. Reuse the report's findings and scope; an empty category is not a completeness or fulfillment verdict.
+
+Before delivery, reconcile every finding disclosed in Markdown, prose and detail diagrams with the summary; grouping may shorten presentation, but an annotated sample does not cover the rest of an item's known choices.
+
+Keep fulfillment gaps, optional mechanisms and implementations without a specific user requirement visible at their relevant locations; complete findings, appendices, reused-evidence dates and unchecked scope remain reachable from the full-report entry.
+
+Use [view content](view-content.md) for source distinctions and [template usage](template-usage.md) for presentation; retain legible source paths and unfiltered content for reading/printing, and do not treat presentation changes as product re-verification.

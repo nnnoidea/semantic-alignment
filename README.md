@@ -1,31 +1,30 @@
 # Semantic Alignment
 
-[中文说明](README.zh-CN.md)
+**Your agent says “done.”**
+**You still don’t know what it skipped, changed, or decided for you.**
 
-Maintain readable current product and system design in Markdown. Check whether the user's requirements are implemented, and expose the concrete details the agent filled in or added.
+Semantic Alignment compares what you asked for with what was built, then shows the differences in a visual report—with **violations of your limits first**.
 
-## When It Applies
+![A file copier's actual flow reveals an overwrite that violates the user's limit, plus recursive scanning and logs the agent added.](docs/images/semantic-alignment-overview.png)
 
-Use the skill when establishing, changing, or correcting lasting product behavior, system contracts, architecture constraints, operating rules, or acceptance criteria. Explicit requests for semantic recording or auditing also apply.
+*Illustrative example. Added choices can be useful—the point is to let you see and judge them.*
 
-Routine implementation under an unchanged design, fixes restoring agreed behavior, internal refactors, tests, debugging, Git operations, installation, temporary analysis, research, and ordinary writing do not automatically activate it. Neither an existing semantic file nor an unspecified implementation detail is sufficient. Existing design still governs the work; consulting it does not require starting an audit.
+## See the decisions behind the code
 
-## Current Design Records
+- **Spot violated limits.** See the exact user restriction, the behavior that violates it, and the evidence.
+- **See what was missed or added.** Surface omitted requirements and added defaults, dependencies, checks, storage or interaction choices.
+- **Skim first, inspect when needed.** Start with a difference summary, then open a finding to explore its flow, original wording and sources. Unverified behavior stays visible.
 
-Small projects can use one SEMANTICS.md. Larger projects can keep shared meaning and topic links there, with cohesive documents in semantics/. Group by product responsibility and complete behavioral chains, with descriptive filenames, headings, and nearby conditions and exceptions.
+Use it to review a feature built by an agent, check a handoff, or pick up a project whose decisions have become hard to track.
 
-Edit the Markdown directly. There are no semantic IDs, JSON ledgers, generated views, relation registries, custom readers, or standing audit caches. Keep unmet requirements visible in their owning topic. Still-relevant alternatives can explain the current choice, potential improvement, deferral reason, and reconsideration conditions; they do not authorize implementation.
+## Try it on your next change
 
-## What An Audit Shows
+Install `SKILL.md`, `agents/`, `references/` and `assets/` together as the `semantic-alignment` skill using your agent’s supported installation mechanism. Point it at your project or change, then ask:
 
-Report both requirement fulfillment and meaningful implementation choices by topic, using current artifact evidence. Show actual defaults, persistence, data flow, triggers, failure handling, and limits. Distinguish explicit requirements, agent-filled details, and additional mechanisms, including internal or apparently beneficial ones. Keep unknown rationale or necessity explicit.
+> Use semantic-alignment to check whether this matches my requirements. Show what you added or decided without me specifying it, and put violations of my constraints first.
 
-Inspect applicable exceptions and bypass paths; main-path success does not prove universal compliance. State the checked scope rather than claiming whole-project alignment from a local check. Ordinary reports may use concise prose, tables, or useful diagrams. A dedicated audit webpage remains a deferred direction requiring separate design.
+Start from the conversation or existing requirements; you don’t need to prepare a semantic record first. For ongoing work, the Skill keeps current user agreements in the project’s designated Markdown document, or `SEMANTICS.md` by default.
 
-For meaningful findings, assess what information or decisions are needed to repair them. Reuse existing requirements, answers, and authorization; investigate artifact facts before asking the user. State only unresolved confirmation points, the specific questions, and how different answers change the repair. Continue authorized independent fixes without adding an approval step for every defect.
+You get a separate summary, an expandable HTML/SVG report and editable Markdown findings. Reports are local; generation uses Python 3. The agent makes the semantic judgments, and the templates handle presentation. Conclusions remain tied to the evidence actually checked.
 
-## Installation And Migration
-
-Install this repository as a Codex-compatible skill named semantic-alignment. [SKILL.md](SKILL.md) is the entry point; the two linked references provide organization and report guidance as needed.
-
-This version replaces the previous JSON workflow. Consolidate the latest accepted meaning, current gaps, and active alternatives into current Markdown, checking that conditions, prohibitions, exceptions, and acceptance boundaries survive. Stop old generators from overwriting the new records. Historical versions remain available in Git; ordinary work does not require loading them.
+[Skill instructions](SKILL.md) · [Checking method](references/audit-presentation.md) · [Report templates](references/template-usage.md)

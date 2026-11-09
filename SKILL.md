@@ -1,79 +1,78 @@
 ---
 name: semantic-alignment
-description: Maintain current Markdown design when a task establishes or changes durable product behavior, system contracts, or acceptance criteria, or explicitly requests semantic recording or auditing. Verify requirements and expose agent implementation choices. Do not auto-trigger for routine implementation under an unchanged design, bug fixes restoring it, internal refactors, tests, Git operations, temporary analysis, research, or ordinary writing.
+description: Perform semantic checks to help users discover where an Agent's implementation departs from their intent or fills in unspecified choices. Use for requests such as “有没有自作主张” or “是不是按我的要求做的”, including intent-comparison requests without the word “semantic”. Maintain current Markdown user meaning as the check baseline and deliver findings through editable Markdown and expandable HTML/SVG reports. Ordinary code reviews, standalone diagrams and repository walkthroughs are outside scope.
 ---
 
 # Semantic Alignment
 
-Keep a readable current design and check real artifacts against it. Maintain meaning by product topic and behavioral chain, not by individual semantic records.
+Help users see whether an Agent followed their intent and what it decided without explicit direction.
 
-## Activation Boundary
+## When To Use
 
-Use this skill when the user establishes, changes, or corrects lasting product or system meaning: behavior users rely on, interfaces, architecture constraints, operating rules, or acceptance criteria. An explicit request to maintain semantic records or perform a semantic audit also activates it.
+Activate when the user asks to compare implementation with their intent or uncover Agent-added decisions, explicitly or through context.
 
-An existing semantic file, a substantial coding task, or an unspecified implementation detail alone is not a trigger. Routine implementation under an unchanged design, fixes restoring agreed behavior, internal refactors, tests, debugging, repository discovery, commits or pushes, installation, temporary scripts, experiments, research, summaries, and ordinary writing do not automatically activate it. A request to review code is not by itself a semantic audit.
+Maintain accepted durable meaning as the check baseline when it changes or the user requests record maintenance; recording alone does not require a full check.
 
-If such work reveals a durable design decision, activate for that affected meaning only. Record accepted experimental conclusions in the owning product when they become lasting decisions. Relevant existing design remains applicable even when this skill is inactive; reading it does not require initiating semantic maintenance or an audit. Once activated, persist accepted meaning even for a small change and check the affected artifacts as described below.
+Ordinary code reviews, standalone diagram requests, routine work under unchanged design and generic repository learning stay outside this scope; “check/检查” alone, existing records or coding complexity are not triggers.
 
-## Records
+A check can start from the user's request and available sources without existing records; save accepted durable meaning when needed. Changes to an existing check report belong to its delivery step.
 
-Small projects can keep the current design in one SEMANTICS.md. For a large project, keep the same entry point and organize substantial topics as Markdown documents:
+## Semantic Check
 
-```text
-<project-root>/SEMANTICS.md       project meaning, shared constraints, topic links
-<project-root>/semantics/         topic documents, only when useful
+Check each current agreement’s behavior, conditions, exceptions and shared constraints, alongside **every user-unspecified implementation choice**, including necessary, ordinary, internal, inherited and low-impact choices.
+
+Inspect requirements → artifacts and independently artifacts → user meaning, covering actual entry points, helpers, configuration, dependencies, defaults, exceptions and shipped inactive mechanisms within scope.
+
+Code, tests and implementation notes are not user acceptance; keep unknown provenance and unmet requirements visible.
+
+Prioritize confirmed violations of the user's constraints so they are immediately visible among the findings.
+
+Follow [semantic check presentation](references/audit-presentation.md) for complete disclosure, optional-mechanism analysis, source-driven verification and repair questions.
+
+A semantic check defaults to local implementation-comparison HTML/SVG with a separate discrepancy-summary page, backed by editable semantic-check Markdown, unless another format is requested. Visualization presents check findings; it is not a separate service.
+
+Present **user agreements → actual flows → steps and evidence**, using [report content and sources](references/view-content.md) and [report template usage](references/template-usage.md); shared implementations have one main explanation with precise links from related agreements.
+
+Lead each finding with a short, concrete conclusion, followed by a brief requirement/behavior comparison; keep added choices concise and make their effects, full wording and evidence available on expansion.
+
+## Maintain Current Meaning
+
+Honor a user-designated record location; otherwise reuse the target project's canonical Markdown document, or default to `<project-root>/SEMANTICS.md` if none exists. Use the user's own wording wherever possible; shorten overlong passages only lightly, preserving their terms, conditions and meaning. Use this structure:
+
+```markdown
+# Project or topic
+## Purpose
+## Constraints
+## User agreements
+### Agreement topic
+**Final expectation:**
+**Current-stage agreement:**
+**Stage completion criteria:**
+**Related agreements:**
+**Related files:**
 ```
 
-Markdown is authoritative and directly editable. Do not maintain semantic IDs, revisions, relation registries, event ledgers, JSON indexes, generated projections, file-state snapshots, or standing coverage caches. Do not create semantic change history or load retired designs during ordinary work.
+Fill each part with the following meaning:
 
-Reuse an existing canonical design document instead of duplicating it. Identify its exact path in SEMANTICS.md when the conventional filename is needed for discovery; keep each topic authoritative in one place. Existing repository ownership and documentation conventions take precedence.
+| Part | What to record |
+| --- | --- |
+| Purpose | Why the project/topic is needed: the user's problem and desired outcome at this scope. |
+| Constraints | User-set boundaries and rules that apply across this scope, including explicit exclusions; put topic-specific constraints beside that topic. |
+| User agreements | User expectations, behavior, boundaries and stage decisions, grouped into named topics; each topic uses the five fields below. |
+| Final expectation | The complete target behavior the user has described, including applicable conditions and exceptions; do not expand it into an Agent-invented roadmap. |
+| Current-stage agreement | What the user wants in this stage: required behavior, scope, agreed approach, and explicit postponements or compromises. This is an agreement, not progress or observed implementation. |
+| Stage completion criteria | User-provided conditions for this stage to count as complete; reference the current agreement when it already states them. Record the criteria, not test results or completion status. |
+| Related agreements | Names/links of other agreement topics and the relationship: depends on, supplies input/output to, shares a constraint with, or refines. Label Agent-inferred relationships as such. |
+| Related files | Relevant record, source or documentation files/directories, with their connection to the topic; multiple paths are allowed. Distinguish user-required paths from Agent-maintained navigation metadata. |
 
-## Shape
+Group topics by the user's concerns; a topic may cover an overall responsibility or a specific behavior. Preserve explicit module boundaries and refinement relationships, while labeling Agent-created groupings as navigation. File splits do not define implementation modules.
 
-SEMANTICS.md carries project purpose, shared vocabulary, and cross-cutting constraints. For multiple files, add topic links with short scope descriptions, without duplicating their detailed requirements.
+Record only expressed or accepted user meaning; write **未约定** for unstated items and preserve known requirements without inventing a final vision, stage boundary or additional acceptance criteria.
 
-Group detailed design by product responsibilities and complete behavioral chains, not abstract categories or individual requirements. Split where distinct tasks need different substantial topics; impose no file count or size limit.
+For example, if the user says “eventually support local and cloud copying; start with local single-file copying”, the first clause is the final expectation and the second is the current-stage agreement; neither says what has been implemented.
 
-Use descriptive filenames, product terms, useful implementation names, and meaningful subheadings. Write connected prose with concrete triggers, outcomes, limits, and nearby exceptions. Ordinary physical line and paragraph breaks support search, bounded reads, and local edits. Avoid giant lines or distant qualifications; use lists for parallel rules.
+Use one file for records within 100 lines; beyond 100 lines, topics may be split into `semantics/` beside the main record, leaving shared meaning and an agreement index at the entry. Split files have no size limit.
 
-Give each rule one authoritative home. Link precisely where a real prerequisite crosses topics, without a broad relation registry. Keep enough local context to understand ordinary behavior without loading unrelated chapters.
+Replace old statements with accepted changes and update affected references; make retained variants' conditions, agreed stage boundaries and unresolved intent explicit.
 
-Distinguish accepted intent from implementation. Keep unmet requirements in their authoritative topic with known gaps; do not weaken them to match code or move them to optional alternatives. Keep uncertainty visible; agent proposals do not silently become accepted design.
-
-Put relevant alternatives in a marked "Not adopted" section of the owning topic; a substantial separate document is optional. Explain the current choice, potential improvement, deferral reason, and reconsideration conditions. Distinguish accepted deferred targets from unverified suggestions. Avoid speculative backlogs and unsupported claims of superiority. Remove adopted, rejected, or irrelevant alternatives and update current design as needed.
-
-## Context And Discovery
-
-Choose tools and reading breadth for the task; document structure prescribes no reading sequence. Account for applicable shared constraints, complete affected behavior, and cross-topic dependencies. Search hits or misses alone do not establish complete context.
-
-Use the known project or existing documentation boundary to locate the authoritative design. Do not create records for a source subdirectory merely because it is the current working directory, or scan unrelated projects and retired ledgers during ordinary work.
-
-See [record design](references/record-design.md) for the organization rationale and migration considerations.
-
-## Update Current Meaning
-
-Persist user-stated or accepted durable meaning while handling the task. Patch current paragraphs instead of appending corrections below obsolete statements. Preserve sufficient semantic context and check affected statements and shared constraints for contradictions; choose the reading and editing scope appropriate to the change. Do not rewrite unrelated chapters for style.
-
-An explicit user correction authorizes updating the baseline. When a substantive change is only the agent's proposal, resolve the uncertainty before treating it as accepted. Reconsidering an alternative does not itself authorize changing product behavior.
-
-## Check The Artifact
-
-The audit has two primary outcomes: establish whether user requirements are implemented, and expose agent additions and choices for unspecified details. Show how the product actually works, including fulfilled requirements, rather than only defects or an alignment declaration.
-
-For ordinary work, check affected behavior and changed artifacts using appropriate diffs, file tools, runtime checks, or tests. Without Git, use changed files and relevant callers. Do not imply a whole-project audit.
-
-Inspect both directions: requirements to artifact, and changed behavior back to design. Trace obligations and prohibitions through triggers, routing, modes, exceptions, fallbacks, and early exits. Main-path success does not prove universal compliance. Expand scope when shared controls affect other topics.
-
-Report fulfillment and concrete choices by topic. Distinguish explicit requirements, agent-filled details, and additional mechanisms; reasonable gap filling is neither automatically a defect nor user-approved design.
-
-Inspect potentially unnecessary additions such as SHA256 checks, extra state, protocols, retries, or verification layers. Internal or apparently beneficial mechanisms still need visibility. Support judgments of effects, benefit, cost, complexity, and necessity with evidence; keep unknown rationale or necessity explicit. Checksums are not inherently wrong, and syntax-only changes are not product decisions.
-
-Surface omissions, narrowing, substitutions, conflicts, and uncertainty alongside choices. No omissions does not mean no additions. Do not promote observed choices into accepted requirements; leave unmet behavior visible as a current design gap.
-
-For material findings, assess what repairing them would require and which information or decisions, if any, need user confirmation. First use accepted design, prior answers and authorization, and inspectable artifacts; do not ask the user to supply facts the agent can establish. Distinguish restoring an agreed behavior from choosing new behavior or resolving conflicting intent. Show necessary confirmation points with the affected behavior and consequences, not a blanket request to approve every fix. When repair work is authorized, proceed with clear independent repairs and pause only work that depends on an unresolved user decision. Finding a problem does not create a new requirement or expand authorization.
-
-State scope, limits, and evidence for substantive findings. Avoid persistent per-requirement pass entries or repeated generic counterexample paragraphs. Reuse understanding for navigation, but verify current artifacts before making current correctness claims.
-
-A requested whole-project audit covers all current design documents and relevant artifacts, including unrequested behavior. Long audits may use temporary checkpoints by topic and artifact scope, not reusable coverage. Check scope changes when resuming and remove completed checkpoints.
-
-See [audit presentation](references/audit-presentation.md) for concrete details and report formats. The dedicated audit webpage and its prototypes remain deferred until the user asks to pursue their design. Ordinary report diagrams are available when useful.
+Put actual behavior found during semantic checking and its supporting evidence, such as code locations or observed results, in the check report rather than the user-meaning record.

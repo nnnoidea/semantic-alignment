@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780" role="img" aria-labelledby="title desc">
+  <title id="title">See the decisions behind “done”</title>
+  <desc id="desc">Illustration of a hypothetical file copier. The user asks for a copier that never overwrites existing files. Its flow reads a source, scans subfolders, replaces the target and saves a log. Semantic Alignment highlights overwriting as a violation of the user's limit, and recursive scanning and persistent logging as unspecified choices.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8Z" fill="#78867e"/></marker>
+    <marker id="red-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0L7 3.5L0 7Z" fill="#b72e43"/></marker>
+    <style>
+      text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+      .eyebrow{font-size:14px;font-weight:700;letter-spacing:1.5px}
+      .step{font-size:23px;font-weight:650;fill:#243b32}
+      .sub{font-size:17px;fill:#64776b}
+    </style>
+  </defs>
+  <rect x="1" y="1" width="1198" height="778" rx="22" fill="#f7f9f6" stroke="#dbe4dc" stroke-width="2"/>
+  <text x="48" y="46" class="eyebrow" fill="#476a57">SEMANTIC ALIGNMENT</text>
+  <text x="1152" y="46" text-anchor="end" font-size="14" fill="#728276">ILLUSTRATIVE EXAMPLE</text>
+  <text x="48" y="95" font-size="35" font-weight="700" fill="#1f372c">See what “done” really contains.</text>
+  <rect x="48" y="123" width="1104" height="98" rx="12" fill="#e9f2eb"/>
+  <rect x="48" y="123" width="5" height="98" rx="2" fill="#4f7c60"/>
+  <text x="72" y="152" class="eyebrow" fill="#4a7057">YOU ASKED</text>
+  <text x="72" y="190" font-size="28" font-weight="550" fill="#243e2f">“Build a file copier. Do not overwrite existing files.”</text>
+  <text x="48" y="270" class="eyebrow" fill="#607166">WHAT THE AGENT BUILT</text>
+  <rect x="48" y="291" width="1104" height="128" rx="14" fill="#fff" stroke="#dbe4dc"/>
+  <path d="M294 355H336" fill="none" stroke="#78867e" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M568 355H610" fill="none" stroke="#78867e" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M842 355H884" fill="none" stroke="#78867e" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="70" y="313" width="224" height="84" rx="10" fill="#f4f7f4" stroke="#c4d2c7" stroke-width="1.5"/>
+  <text x="182" y="349" text-anchor="middle" class="step">Read source</text>
+  <text x="182" y="376" text-anchor="middle" class="sub">Requested capability</text>
+  <rect x="344" y="313" width="224" height="84" rx="10" fill="#fff5dc" stroke="#c89434" stroke-width="1.5"/>
+  <text x="456" y="349" text-anchor="middle" class="step">Scan subfolders</text>
+  <text x="456" y="376" text-anchor="middle" font-size="17" fill="#916319">Agent-added choice</text>
+  <rect x="618" y="313" width="224" height="84" rx="10" fill="#fff0f1" stroke="#b72e43" stroke-width="2.5"/>
+  <text x="730" y="349" text-anchor="middle" font-size="23" font-weight="700" fill="#a3263b">Replace target</text>
+  <text x="730" y="376" text-anchor="middle" font-size="17" fill="#a3263b">Violates your limit</text>
+  <rect x="892" y="313" width="238" height="84" rx="10" fill="#fff5dc" stroke="#c89434" stroke-width="1.5"/>
+  <text x="1011" y="349" text-anchor="middle" class="step">Save a run log</text>
+  <text x="1011" y="376" text-anchor="middle" font-size="17" fill="#916319">Agent-added choice</text>
+  <path d="M730 400V443H629V475" fill="none" stroke="#b72e43" stroke-width="2" marker-end="url(#red-arrow)"/>
+  <text x="48" y="458" class="eyebrow" fill="#607166">WHAT YOU NEED TO REVIEW</text>
+  <rect x="48" y="484" width="670" height="222" rx="12" fill="#fff" stroke="#b72e43" stroke-width="2"/>
+  <rect x="48" y="484" width="6" height="222" rx="3" fill="#b72e43"/>
+  <rect x="72" y="505" width="208" height="28" rx="5" fill="#fee6e9"/>
+  <text x="84" y="525" font-size="14" font-weight="700" fill="#a3263b">YOUR LIMIT · PRIORITY 1</text>
+  <text x="72" y="568" font-size="27" font-weight="700" fill="#263a30">Existing files get overwritten.</text>
+  <text x="72" y="604" font-size="18" fill="#64776b">Your words</text>
+  <text x="201" y="604" font-size="20" fill="#294d36">“Do not overwrite existing files.”</text>
+  <text x="72" y="638" font-size="18" fill="#64776b">Actual behavior</text>
+  <text x="235" y="638" font-size="20" fill="#a3263b">An existing target is replaced.</text>
+  <path d="M72 656H694" stroke="#edd8dc"/>
+  <text x="72" y="685" font-size="17" font-weight="600" fill="#476a57">Open a finding to inspect the flow and its evidence.</text>
+  <rect x="742" y="484" width="410" height="222" rx="12" fill="#fffaf0" stroke="#dfc995" stroke-width="1.5"/>
+  <text x="766" y="525" class="eyebrow" fill="#916319">ALSO DECIDED FOR YOU</text>
+  <circle cx="773" cy="567" r="4" fill="#b88326"/>
+  <text x="788" y="574" font-size="22" font-weight="600" fill="#4d432c">Recursive traversal</text>
+  <circle cx="773" cy="607" r="4" fill="#b88326"/>
+  <text x="788" y="614" font-size="22" font-weight="600" fill="#4d432c">Persistent logs</text>
+  <text x="766" y="655" font-size="18" fill="#7e7051">Not specified in your request.</text>
+  <text x="766" y="680" font-size="18" fill="#7e7051">You decide whether they belong.</text>
+  <text x="48" y="746" font-size="15" fill="#728276">A hypothetical copier, not a live audit. Summary → actual flow → original wording and sources.</text>
+</svg>

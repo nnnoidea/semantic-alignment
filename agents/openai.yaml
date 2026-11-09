@@ -1,4 +1,4 @@
 interface:
   display_name: "Semantic Alignment"
-  short_description: "Verify requirements and expose agent implementation choices."
-  default_prompt: "Use $semantic-alignment when establishing or changing durable product or system design, or when explicitly requested to record or audit semantics; maintain current Markdown meaning and show requirement fulfillment and agent implementation choices."
+  short_description: "Check implementation and expose user-unspecified choices."
+  default_prompt: "Use $semantic-alignment to check current user agreements, independently expose unspecified implementation choices, and show agreements leading to their actual flows in an interactive SVG report."
